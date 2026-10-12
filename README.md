@@ -1,88 +1,127 @@
-# PagePal
+# Webby Chat
 
-PagePal is a Chrome extension and local FastAPI service that lets you ask questions about the webpage currently open in your browser. The backend extracts readable page content, splits and embeds it with ChromaDB, then uses a local Hugging Face language model to answer questions from the retrieved text.
+Webby Chat is a Chrome extension that analyzes the current webpage or YouTube video and answers questions from the content it extracts. The backend retrieves readable text, splits it into chunks, stores embeddings in ChromaDB, and uses Groq-hosted LLMs to answer grounded questions from the retrieved context.
 
 ## Features
 
-- Automatically analyzes the active webpage when the extension popup opens.
-- Shows analysis progress and errors in the popup.
-- Stores page chunks and embeddings locally in ChromaDB.
-- Answers questions using only the retrieved webpage content.
-- Keeps a short, in-memory chat history for follow-up questions.
+- Analyzes the active tab when the extension opens.
+- Handles both regular webpages and YouTube links.
+- Extracts readable text using `trafilatura` and YouTube subtitle retrieval.
+- Saves page/video chunks and embeddings in a local ChromaDB collection.
+- Answers questions using only the indexed content for that URL.
+- Keeps a short in-memory chat history for follow-up questions.
+- Provides a FastAPI backend with progress tracking for long-running page analysis.
 
 ## Project structure
 
 ```text
 backend/
-  main.py       FastAPI routes
-  function.py   Web extraction, embeddings, and vector search
-  llm.py        Local Hugging Face LLM and chat chain
-extension/
-  manifest.json Chrome extension manifest
-  popup.*       Popup interface and API client
+  main.py                 FastAPI endpoints
+  function.py            URL extraction, chunking, vector search, indexing
+  llm.py                 Groq chat model + prompt + session history
+  youtube_transcript.py  YouTube transcript extraction utilities
+  evaluation/
+    evals.py             Optional RAG evaluation script
+    test.json            Evaluation cases
+front-end/
+  manifest.json          Chrome extension manifest
+  popup.html             Popup UI
+  popup.css             Popup styling
+  popup.js              Front-end logic and API client
+README.md
+requirements.txt
 ```
 
 ## Prerequisites
 
-- Python 3.10 or newer
+- Python 3.10+
 - Google Chrome or another Chromium-based browser
-- Sufficient disk space and RAM for the configured local model (`prism-ml/Ternary-Bonsai-2-27B-gguf`)
+- A Groq API key
 
-> The model is downloaded/initialized by the backend on first use. Its hardware requirements can be substantial.
+The app uses the Groq model configured in `backend/llm.py` (`openai/gpt-oss-20b`), so you must set your `GROQ_API_KEY` before running the backend.
 
 ## Setup
 
-Create and activate a virtual environment:
+1. Create and activate a virtual environment:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the backend dependencies:
+2. Install the dependencies:
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-Start the API from the `backend` directory:
+3. Create a `.env` file in the project root or `backend/` directory with your Groq key:
+
+```env
+GROQ_API_KEY=your_api_key_here
+```
+
+4. Start the backend:
 
 ```powershell
 cd backend
 uvicorn main:app --reload
 ```
 
-The API listens at `http://127.0.0.1:8000` by default.
+The API will run at `http://127.0.0.1:8000`.
 
 ## Load the extension
 
 1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Choose **Load unpacked**.
-4. Select this repository's `extension` folder.
-5. Keep the backend running, open a normal `http` or `https` webpage, and click the PagePal extension icon.
+2. Enable Developer mode.
+3. Click Load unpacked.
+4. Select the `front-end` folder from this project.
+5. Keep the FastAPI backend running, open a normal webpage or a YouTube video, and click the extension icon.
 
-PagePal analyzes the page automatically. Once processing reaches 100%, enter a question in the popup.
+The extension automatically starts analysis for the active page. Once analysis finishes, you can ask questions in the popup.
 
-## API
+## API routes
 
-### `POST /analyze`
+### POST /analyze
 
-Starts background analysis of a webpage.
+Starts background analysis for a URL.
+
+Request body:
 
 ```json
-{ "url": "https://example.com" }
+{
+  "url": "https://example.com"
+}
 ```
 
-The response contains a `task_id`.
+Response:
 
-### `GET /progress/{task_id}`
+```json
+{
+  "task_id": "<uuid>"
+}
+```
 
-Returns the current stage, percentage, and any error for an analysis task.
+### GET /progress/{task_id}
 
-### `POST /ask`
+Returns the status for a long-running analysis task.
 
-Answers a question using chunks stored for the specified URL.
+Example response:
+
+```json
+{
+  "stage": "complete",
+  "progress": 100,
+  "message": "Analysis complete!",
+  "error": false
+}
+```
+
+### POST /ask
+
+Answers a question based on previously indexed content for a given URL.
+
+Request body:
 
 ```json
 {
@@ -91,11 +130,22 @@ Answers a question using chunks stored for the specified URL.
 }
 ```
 
+Response:
+
+```json
+{
+  "question": "What is this page about?",
+  "answer": "...",
+  "context": "..."
+}
+```
+
 ## Local data
 
-ChromaDB persists its data in `backend/database` when the server is started from the `backend` directory. Delete that folder if you want to remove all indexed page data.
+ChromaDB stores the indexed page data in the `backend/database` folder when the backend is started from the `backend` directory. Delete that folder if you want to clear all stored embeddings and page chunks.
 
 ## Notes
 
-- The extension is configured to contact `http://127.0.0.1:8000`. Update `API_BASE` in `extension/popup.js` if the backend uses a different address or port.
-- CORS is currently open to all origins for local development. Restrict it before exposing the API outside your machine.
+- The extension is configured to call `http://127.0.0.1:8000`. If you run the API on a different host or port, update `API_BASE` in `front-end/popup.js`.
+- CORS is intentionally permissive for local development. Restrict it before exposing the API beyond your local machine.
+- The evaluation script in `backend/evaluation/evals.py` is optional and helps benchmark the RAG pipeline against sample questions.
