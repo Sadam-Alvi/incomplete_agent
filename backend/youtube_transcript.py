@@ -1,34 +1,97 @@
+import re
 from urllib.parse import urlparse, parse_qs
-from youtube_transcript_api import YouTubeTranscriptApi
+from yt_dlp import YoutubeDL
+from youtube_transcript_api import  YouTubeTranscriptApi
+
 
 def extract_video_id(url):
     """
-    Extracts the video ID from various styles of YouTube links.
+    Robust extraction of YouTube video ID from various URL formats.
+    Returns a clean string.
     """
     parsed_url = urlparse(url)
+    
+    # Handle shortened youtu.be links
     if parsed_url.hostname == 'youtu.be':
         return parsed_url.path[1:]
+        
+    # Handle standard watch links
     if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
         if parsed_url.path == '/watch':
-            return parse_qs(parsed_url.query)['v'][0]
-        if parsed_url.path.startswith(('/embed/', '/v/')):
+            query_params = parse_qs(parsed_url.query)
+            if 'v' in query_params and query_params['v']:
+                # FIX: parse_qs returns a list; extract the first element as a string
+                return query_params['v'][0]
+        # Handle shorts, embed, or live URLs
+        if parsed_url.path.startswith(('/embed/', '/v/', '/shorts/', '/live/')):
             return parsed_url.path.split('/')[2]
-    raise ValueError("Invalid YouTube URL")
+            
+    # Fallback regex for tricky string cases
+    regex = r'(?:v=|\/shorts\/|\/embed\/|\/v\/|\.be\/)([a-zA-Z0-9_-]{11})'
+    match = re.search(regex, url)
+    if match:
+        return match.group(1)
+        
+    raise ValueError("Could not parse YouTube Video ID from URL")
 
 def get_youtube_transcript(video_url):
     try:
-        # Step 1: Extract the video ID from the link
         video_id = extract_video_id(video_url)
+        clean_url = f"https://www.youtube.com/watch?v={video_id}"
         
-        # Step 2: Fetch the raw transcript data
-        # This returns a list of dictionaries: [{'text': '...', 'start': 0.0, 'duration': 0.0}]
-        raw_transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        # Configure yt-dlp to only fetch the subtitle tracks without downloading the video
+        ydl_opts = {
+            'writesubtitles': True,
+            'writeautomaticsubtitles': True,
+            'skip_download': True,
+            'quiet': True,
+            'no_warnings': True
+        }
         
-        # Step 3: Join the text snippets into a clean, single paragraph
-        full_transcript = " ".join([entry['text'] for entry in raw_transcript])
-        print(full_transcript)
-        return full_transcript
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(clean_url, download=False)
+            
+            # Check for manually uploaded subtitles first, fallback to auto-generated
+            subtitles = info_dict.get('subtitles', {}) or info_dict.get('automatic_captions', {})
+            
+            # Check for English track variants
+            en_track = None
+            for lang in ['en', 'en-US', 'en-GB']:
+                if lang in subtitles:
+                    en_track = subtitles[lang]
+                    break
+            
+            if not en_track:
+                # Fallback to the first available language track if English isn't present
+                if subtitles:
+                    en_track = list(subtitles.values())[0]
+                else:
+                    return "Error: No transcripts or captions available for this video."
+            
+            # Find the JSON format url inside the subtitle track configurations
+            json_url = next((item['url'] for item in en_track if item.get('ext') == 'json'), None)
+            
+            if not json_url:
+                # If no json format structure is directly exposed, try picking the first format index
+                json_url = en_track[0]['url']
+                
+            # Fetch and clean the text content using yt-dlp's internal downloader instance
+            import json
+            import urllib.request
+            
+            response = urllib.request.urlopen(json_url)
+            data = json.loads(response.read().decode('utf-8'))
+            
+            # Parse out the clean text segments depending on YouTube subtitle JSON structure formats
+            text_segments = []
+            if 'events' in data:
+                for event in data['events']:
+                    if 'segs' in event:
+                        for seg in event['segs']:
+                            text_segments.append(seg['utf8'])
+            
+            full_transcript = "".join(text_segments).strip()
+            return full_transcript if full_transcript else "Error: Transcript data could not be parsed."
 
     except Exception as e:
         return f"Error retrieving transcript: {str(e)}"
-

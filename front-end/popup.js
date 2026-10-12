@@ -41,7 +41,7 @@ let isSending = false;
 
 function getChatKey(url) {
   // Stable, consistent key for each page URL.
-  return "pagepal_chat_" + encodeURIComponent(url);
+  return "Webby_chat_" + encodeURIComponent(url);
 }
 
 async function saveChat(url, history) {

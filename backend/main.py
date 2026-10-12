@@ -47,8 +47,9 @@ async def get_progress(task_id: str):
 @app.post("/ask")
 def ask_question(request: AskRequest):
     
-    answer = answer_the_query(request.question, request.url)
+    answer,context = answer_the_query(request.question, request.url)
     return {
         "question": request.question,
-        "answer": answer
+        "answer": answer,
+        'context':context
     }

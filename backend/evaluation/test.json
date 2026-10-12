@@ -1,0 +1,24 @@
+
+[
+  {
+    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
+    "question": "What is a feedforward neural network?",
+    "ground_truth": "A feedforward neural network is a neural network in which information moves from input toward output without forming cycles."
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
+    "question": "What is the role of hidden layers?",
+    "ground_truth": "Hidden layers transform input representations as information passes through the network."
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
+    "question": "In which direction does information flow in a feedforward neural network?",
+    "ground_truth": "Information flows from the input layer through the network toward the output layer without cycles."
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
+    "question": "What is the purpose of an activation function in a neural network?",
+    "ground_truth": "An activation function transforms a neuron's input and can introduce nonlinearity into the network, enabling it to learn more complex relationships."
+  }
+
+]

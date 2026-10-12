@@ -44,6 +44,13 @@ class LimitedChatMessageHistory(InMemoryChatMessageHistory):
 # ====================== PROMPT ======================
 prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a helpful assistant specialized in answering questions about a webpage OR a youtube video.
+Rules:
+1. Do not use outside knowledge to fill gaps in the context.
+2. Do not invent facts or unsupported explanations.
+3. If the context does not contain enough information,
+   clearly state that the answer is not available on the page.
+4. Give a concise answer that directly addresses the question.
+5. Every factual claim must be supported by the context.
 
 Answer the user's question ONLY based on the provided page content or video transcript.
 If the content is insufficient, say "I couldn't find that information on the page. or youtube video"
@@ -85,3 +92,17 @@ def answer_the_given_question(question: str, context: str, session_id: str = "de
         config={"configurable": {"session_id": session_id}}
     )
     return response
+
+def rewrite_question(question: str) -> str:
+    """
+    Uses an LLM to rewrite a user question into an optimized search query
+    suitable for dense vector retrieval.
+    """
+    prompt = f"""You are an expert search engine optimizer. 
+Your task is to rewrite the user's question into a concise, direct search query.
+Remove conversational filler (e.g., "please tell me", "can you help me find").
+Focus on core keywords and intent. Return ONLY the rewritten query text.
+
+User Question: {question}
+Optimized Search Query:"""
+    return llm.invoke(prompt).content
