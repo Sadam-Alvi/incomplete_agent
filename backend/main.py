@@ -50,6 +50,6 @@ def ask_question(request: AskRequest):
     answer,context = answer_the_query(request.question, request.url)
     return {
         "question": request.question,
-        "answer": answer,
+        "answer": answer.strip(),
         'context':context
     }

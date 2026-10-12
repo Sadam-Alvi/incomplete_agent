@@ -163,18 +163,25 @@ function showChatScreen() {
 // MESSAGE RENDERING
 // ========================================
 
+
 function createMessage(content, role = "bot") {
-  const element = document.createElement("div");
+    const element = document.createElement("div");
 
-  element.className = `message ${role}`;
-  element.textContent = String(content ?? "");
-  element.id =
-    "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+    element.className = `message ${role}`;
+    element.id =
+        "msg-" + Date.now() + "-" +
+        Math.random().toString(36).slice(2);
 
-  chatMessages.appendChild(element);
-  scrollChatToBottom();
+    if (role === "bot" || role === "assistant") {
+        renderMarkdown(element, content);
+    } else {
+        element.textContent = String(content ?? "");
+    }
 
-  return element;
+    chatMessages.appendChild(element);
+    scrollChatToBottom();
+
+    return element;
 }
 
 function scrollChatToBottom() {
@@ -393,7 +400,7 @@ chatForm.addEventListener("submit", async (event) => {
 
     // Plain text rendering avoids Markdown-renderer failures.
     replyElement.className = "message bot";
-    replyElement.textContent = answer;
+    renderMarkdown(replyElement, answer);
 
     chatHistory.push({
       role: "assistant",
@@ -439,3 +446,17 @@ retryBtn.addEventListener("click", () => {
 document.addEventListener("DOMContentLoaded", () => {
   startAnalysis();
 });
+
+function renderMarkdown(element, content) {
+    const markdown = String(content ?? "");
+
+    if (typeof marked === "undefined" ||
+        typeof DOMPurify === "undefined") {
+        element.textContent = markdown;
+        return;
+    }
+
+    const html = marked.parse(markdown);
+
+    element.innerHTML = DOMPurify.sanitize(html);
+}

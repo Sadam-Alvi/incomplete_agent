@@ -9,6 +9,24 @@ from urllib.parse import urlparse
 from threading import Lock
 from llm import *
 from youtube_transcript import *
+import re
+import os
+import pandas as pd
+        # or an absolute path if you prefer
+
+def load_or_create_df(path) -> pd.DataFrame:
+   
+    if os.path.exists(path):
+        df = pd.read_csv(path)
+        # ensure expected columns exist
+        if not set(["url", "content"]).issubset(df.columns):
+            df = pd.DataFrame(columns=["url", "content"])
+    else:
+        df = pd.DataFrame(columns=["url", "content"])
+    return df
+
+# Load once at module/script level
+df = load_or_create_df(r"C:\Users\Alvi\Desktop\agentic\incomplete_agent\content.csv"  ) # Load the CSV file into a DataFrame
 
 model = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
@@ -22,6 +40,8 @@ tasks = {}
 tasks_lock = Lock()
 
 def get_content_from_url(url: str) -> str:
+    if url in df['url'].values:
+        return df[df['url'] == url]['content'].values[0]
     if not url or not url.strip():
         raise ValueError("URL cannot be empty.")
 
@@ -54,6 +74,8 @@ def get_content_from_url(url: str) -> str:
         raise ValueError("Could not extract readable content from the URL.")
 
     text = text.strip()
+    df.loc[len(df)] = [url, clean_text(text)]  # Append new content to DataFrame
+    df.to_csv('content.csv', index=False)  # Save the updated DataFrame
     return clean_text(text)
 
 
@@ -139,6 +161,7 @@ def process_page(task_id, url):
 
 def answer_the_query(question: str, url: str) -> str:
     question = rewrite_question(question)
+    question = generate_query_variants(question)
     embedded_query = model.encode(question,normalize_embeddings=True)
     results = collection.query(
         query_embeddings=[embedded_query],
@@ -153,6 +176,7 @@ def answer_the_query(question: str, url: str) -> str:
     
     context = "\n\n---\n\n".join(docs)
     compressed_context = compress_context(context,question)
+    # compressed_context = context
     answer = answer_the_given_question(question,compressed_context)
     return answer,compressed_context
 

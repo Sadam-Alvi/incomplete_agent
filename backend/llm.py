@@ -84,6 +84,7 @@ chain_with_history = RunnableWithMessageHistory(
 
 # ====================== MAIN FUNCTION ======================
 def answer_the_given_question(question: str, context: str, session_id: str = "default") -> str:
+    print(context)
     response = chain_with_history.invoke(
         {
             "question": question,
@@ -93,16 +94,28 @@ def answer_the_given_question(question: str, context: str, session_id: str = "de
     )
     return response
 
+
 def rewrite_question(question: str) -> str:
     """
     Uses an LLM to rewrite a user question into an optimized search query
     suitable for dense vector retrieval.
     """
     prompt = f"""You are an expert search engine optimizer. 
-Your task is to rewrite the user's question into a concise, direct search query.
-Remove conversational filler (e.g., "please tell me", "can you help me find").
-Focus on core keywords and intent. Return ONLY the rewritten query text.
+                Your task is to rewrite the user's question into a concise, direct search query explain the purspose behind question sp that it can be used to find similar informationto answer the question.
+                Remove conversational filler (e.g., "please tell me", "can you help me find").
+                Focus on core keywords and intent. Return ONLY the rewritten query text.
 
-User Question: {question}
-Optimized Search Query:"""
+                User Question: {question}
+                Optimized Search Query:"""
+    return llm.invoke(prompt).content
+
+
+
+def generate_query_variants(question: str, num_variants: int = 5) -> list[str]:
+    """Uses an LLM to generate alternative phrasing of the user's question."""
+    prompt = f"""You are an AI assistant. Generate {num_variants} different versions of the following 
+    user question to help retrieve relevant documents from a vector database. 
+    Output ONLY the alternative questions, one per line. Do not include numbering or bullet points.
+    
+    Original question: {question}"""
     return llm.invoke(prompt).content

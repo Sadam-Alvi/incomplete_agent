@@ -295,3 +295,42 @@ header p {
   display: block;
   margin-bottom: 4px;
 }
+.message.bot {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.message.bot strong {
+  font-weight: 700;
+}
+
+.message.bot em {
+  font-style: italic;
+}
+
+.message.bot h1,
+.message.bot h2,
+.message.bot h3 {
+  font-size: 16px;
+  margin: 12px 0 6px;
+}
+
+.message.bot p {
+  margin: 7px 0;
+}
+
+.message.bot ul,
+.message.bot ol {
+  padding-left: 22px;
+}
+
+.message.bot pre {
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  background: #f1f1f1;
+}
+
+.message.bot code {
+  overflow-wrap: anywhere;
+}
