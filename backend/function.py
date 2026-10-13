@@ -12,6 +12,8 @@ from youtube_transcript import *
 import re
 import os
 import pandas as pd
+from get_content import *
+from getting_img_des_by_url import get_img_details
         # or an absolute path if you prefer
 
 def load_or_create_df(path) -> pd.DataFrame:
@@ -39,44 +41,6 @@ collection = client.get_or_create_collection(
 tasks = {}
 tasks_lock = Lock()
 
-def get_content_from_url(url: str) -> str:
-    if url in df['url'].values:
-        return df[df['url'] == url]['content'].values[0]
-    if not url or not url.strip():
-        raise ValueError("URL cannot be empty.")
-
-    url = url.strip()
-    hostname = (urlparse(url).hostname or "").lower()
-
-    
-
-    # Detect YouTube URLs, including youtu.be links.
-    is_youtube = (
-        hostname == "youtu.be"
-        or hostname.endswith("youtube.com")
-        or hostname.endswith("youtube-nocookie.com")
-    )
-
-    if is_youtube:
-        text = get_youtube_transcript(url)
-        
-
-    else:
-        downloaded = trafilatura.fetch_url(url)
-
-        if not downloaded:
-            raise ValueError("Could not download webpage.")
-
-        text = trafilatura.extract(downloaded)
-        
-
-    if not isinstance(text, str) or not text.strip():
-        raise ValueError("Could not extract readable content from the URL.")
-
-    text = text.strip()
-    df.loc[len(df)] = [url, clean_text(text)]  # Append new content to DataFrame
-    df.to_csv('content.csv', index=False)  # Save the updated DataFrame
-    return clean_text(text)
 
 
 
@@ -126,7 +90,9 @@ def process_page(task_id, url):
     try:
         update_progress(task_id, "reading", 10, "Reading webpage...")
         content = get_content_from_url(url)
-        print(content)
+        # img_data = get_img_details(url)
+        # content = f'{content} + \n\n\n\n\n\n {img_data}'
+        
         update_progress(task_id, "extracting", 35, "Extracting readable text...")
         if not content.strip():
             raise ValueError("No readable webpage content found.")
@@ -162,6 +128,7 @@ def process_page(task_id, url):
 def answer_the_query(question: str, url: str) -> str:
     question = rewrite_question(question)
     question = generate_query_variants(question)
+
     embedded_query = model.encode(question,normalize_embeddings=True)
     results = collection.query(
         query_embeddings=[embedded_query],
@@ -181,21 +148,3 @@ def answer_the_query(question: str, url: str) -> str:
     return answer,compressed_context
 
 
-def clean_text(text: str) -> str:
-    # Remove Wikipedia edit markers
-    text = re.sub(r"\[edit\]", "", text, flags=re.IGNORECASE)
-
-    # Remove common inline citation markers
-    text = re.sub(r"\[(?:\d+(?:,\s*\d+)*|citation needed|update)\]", "", text, flags=re.IGNORECASE)
-
-    # Remove URLs
-    text = re.sub(r"https?://\S+", "", text)
-
-    # Normalize whitespace
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n\s*\n+", "\n\n", text)
-
-    # Normalize spacing around punctuation
-    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
-
-    return text.strip()
