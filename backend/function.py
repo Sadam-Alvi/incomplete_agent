@@ -14,21 +14,8 @@ import os
 import pandas as pd
 from get_content import *
 from getting_img_des_by_url import get_img_details
-        # or an absolute path if you prefer
 
-def load_or_create_df(path) -> pd.DataFrame:
-   
-    if os.path.exists(path):
-        df = pd.read_csv(path)
-        # ensure expected columns exist
-        if not set(["url", "content"]).issubset(df.columns):
-            df = pd.DataFrame(columns=["url", "content"])
-    else:
-        df = pd.DataFrame(columns=["url", "content"])
-    return df
 
-# Load once at module/script level
-df = load_or_create_df(r"C:\Users\Alvi\Desktop\agentic\incomplete_agent\content.csv"  ) # Load the CSV file into a DataFrame
 
 model = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
@@ -49,7 +36,7 @@ tasks_lock = Lock()
 def preprocess_data(content: str, url: str) -> list:
     text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=600,        # Maximum number of characters per chunk
-    chunk_overlap=40,      # Number of characters to overlap between chunks
+    chunk_overlap=20,      # Number of characters to overlap between chunks
     length_function=len,   # How to measure chunk size
     is_separator_regex=False,
 )
@@ -90,8 +77,10 @@ def process_page(task_id, url):
     try:
         update_progress(task_id, "reading", 10, "Reading webpage...")
         content = get_content_from_url(url)
-        # img_data = get_img_details(url)
-        # content = f'{content} + \n\n\n\n\n\n {img_data}'
+        img_data = get_img_details(url)
+        # print(img_data)
+        content = f'{content} + \n\n\n {img_data}'
+        # print(content)
         
         update_progress(task_id, "extracting", 35, "Extracting readable text...")
         if not content.strip():
@@ -135,16 +124,20 @@ def answer_the_query(question: str, url: str) -> str:
         n_results=40,
         where={"url": url},
     )
+
     docs = results["documents"][0] if results["documents"] else []
+   
     if not docs:
         answer = "I couldn't find any relevant information on this page for that question."
         context = ['not found']
         return answer,context
     
+    
+    
     context = "\n\n---\n\n".join(docs)
     compressed_context = compress_context(context,question)
-    # compressed_context = context
-    answer = answer_the_given_question(question,compressed_context)
-    return answer,compressed_context
+
+    answer = answer_the_given_question(question,context)
+    return answer,context
 
 

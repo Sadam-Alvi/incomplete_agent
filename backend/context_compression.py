@@ -37,7 +37,7 @@ def compress_context(context: str, question: str) -> str:
     similarities = chunk_embeddings @ question_embedding
 
     # Keep relevant chunks
-    threshold = 0.50
+    threshold = 0.70
     relevant_chunks = [
         (chunk, float(score))
         for chunk, score in zip(unique_chunks, similarities)

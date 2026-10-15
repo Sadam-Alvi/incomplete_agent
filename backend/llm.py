@@ -6,7 +6,6 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from typing import List
 from langchain_core.messages import BaseMessage
-from langchain_huggingface import HuggingFacePipeline
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 load_dotenv()
@@ -51,6 +50,7 @@ Rules:
    clearly state that the answer is not available on the page.
 4. Give a concise answer that directly addresses the question.
 5. Every factual claim must be supported by the context.
+6. If website is not allowing scraping, say it to user
 
 Answer the user's question ONLY based on the provided page content or video transcript.
 If the content is insufficient, say "I couldn't find that information on the page. or youtube video"

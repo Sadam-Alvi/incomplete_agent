@@ -76,7 +76,6 @@ def get_img_details(url: str) -> str:
             elif len(clean_links) < 3:  # still allow a few smaller ones
                 clean_links.append(link)
 
-    clean_links = clean_links[:4]
+    clean_links = clean_links[:15]
     
     return asyncio.run(describe_img(clean_links))
-

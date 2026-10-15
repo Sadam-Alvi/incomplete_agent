@@ -334,3 +334,52 @@ header p {
 .message.bot code {
   overflow-wrap: anywhere;
 }
+
+/* Compact AI response layout */
+.chat-messages {
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+.chat-messages p {
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.chat-messages h1,
+.chat-messages h2,
+.chat-messages h3 {
+    margin: 8px 0 4px;
+    line-height: 1.3;
+}
+
+.chat-messages ul,
+.chat-messages ol {
+    margin: 3px 0;
+    padding-left: 20px;
+}
+
+.chat-messages li {
+    margin: 2px 0;
+    padding: 0;
+    line-height: 1.35;
+}
+
+.chat-messages li p {
+    margin: 0;
+}
+
+.chat-messages strong {
+    font-weight: 600;
+}
+
+.chat-messages pre {
+    margin: 6px 0;
+    padding: 8px;
+    overflow-x: auto;
+}
+
+.chat-messages blockquote {
+    margin: 5px 0;
+    padding-left: 10px;
+}

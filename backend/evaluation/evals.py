@@ -8,13 +8,14 @@ from ragas.metrics import (
     context_precision,
     context_recall,
 )
+from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 import json
+from langchain_groq import ChatGroq
 from pathlib import Path
 import os
 import time
 import requests
-from langchain_groq import ChatGroq
 from langchain_community.embeddings import HuggingFaceEmbeddings
 load_dotenv()
 
@@ -26,11 +27,12 @@ POLL_INTERVAL = 1.5          # seconds between progress checks
 MAX_WAIT_SECONDS = 180       # max time to wait for analysis
 
 # Evaluation models (these do not replace your PagePal models)
-evaluator_llm = ChatGroq(
-    model="openai/gpt-oss-120b",
-    temperature=0,
-    max_tokens=4096
+evaluator_llm =ChatGoogleGenerativeAI(
+    model="gemini-3.8-flash",
+    max_retries=3,
+    timeout=20,
 )
+
 evaluator_embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-small-en-v1.5",
     model_kwargs={"device": "cpu"},
