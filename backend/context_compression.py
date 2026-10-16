@@ -1,52 +1,41 @@
-
+import numpy as np
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
 from dotenv import load_dotenv
 load_dotenv()
-
 model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
-def compress_context(context: str, question: str) -> str:
-    chunks = context.split("\n\n---\n\n")
 
-    if not chunks:
-        return ""
+def compress_context(context: list[str], question: str) -> list[str]:
+    if not context:
+        return []
 
-    # Remove empty chunks and duplicates
-    unique_chunks = []
-    seen = set()
+    # Remove duplicate chunks while preserving order
+    unique_chunks = list(dict.fromkeys(context))
 
-    for chunk in chunks:
-        chunk = chunk.strip()
-        normalized = " ".join(chunk.lower().split())
-
-        if chunk and normalized not in seen:
-            seen.add(normalized)
-            unique_chunks.append(chunk)
-
-    if not unique_chunks:
-        return ""
-
-    # Generate normalized embeddings
-    question_embedding = model.embed_documents([question])
-
+    # Generate embeddings
+    question_embedding = model.embed_query(question)
     chunk_embeddings = model.embed_documents(unique_chunks)
-    # Calculate cosine similarity
+
+    # Convert lists to NumPy arrays
+    question_embedding = np.asarray(question_embedding, dtype=np.float32)
+    chunk_embeddings = np.asarray(chunk_embeddings, dtype=np.float32)
+
+    # Normalize embeddings for cosine similarity
+    question_embedding /= (
+        np.linalg.norm(question_embedding) + 1e-12
+    )
+    chunk_embeddings /= (
+        np.linalg.norm(chunk_embeddings, axis=1, keepdims=True) + 1e-12
+    )
+
+    # Calculate cosine similarities
     similarities = chunk_embeddings @ question_embedding
 
-    # Keep relevant chunks
-    threshold = 0.70
-    relevant_chunks = [
-        (chunk, float(score))
-        for chunk, score in zip(unique_chunks, similarities)
-        if score >= threshold
+    # Select the top 5 most relevant chunks
+    top_k = min(5, len(unique_chunks))
+    top_indices = np.argsort(similarities)[-top_k:][::-1]
+
+    compressed_context = [
+        unique_chunks[i] for i in top_indices
     ]
 
-    # Rank by relevance
-    relevant_chunks.sort(
-        key=lambda item: item[1],
-        reverse=True
-    )
-
-    return "\n\n---\n\n".join(
-        chunk for chunk, _ in relevant_chunks
-    )
+    return compressed_context

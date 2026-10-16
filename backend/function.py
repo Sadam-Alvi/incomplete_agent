@@ -46,7 +46,7 @@ def preprocess_data(content: str, url: str) -> list:
 
     ids = [str(uuid.uuid4()) for _ in chunks]
     metadatas = [{"url": url, "chunk_index": i} for i in range(len(chunks))]
-
+    print(chunks)
     collection.add(
         ids=ids,
         documents=chunks,
@@ -73,6 +73,7 @@ def process_page(task_id, url):
         # print(img_data)
         content = f'{content} + \n\n\n {img_data}'
         # print(content)
+
         
         update_progress(task_id, "extracting", 35, "Extracting readable text...")
         if not content.strip():
@@ -110,7 +111,8 @@ def answer_the_query(question: str, url: str) -> str:
     question = rewrite_question(question)
     question = generate_query_variants(question)
 
-    embedded_query = model.feature_extraction(model_name=model_name,text=[question])
+    embedded_query = model.embed_query(question)
+    
     results = collection.query(
         query_embeddings=[embedded_query],
         n_results=40,
@@ -118,6 +120,7 @@ def answer_the_query(question: str, url: str) -> str:
     )
 
     docs = results["documents"][0] if results["documents"] else []
+    # print(docs)
    
     if not docs:
         answer = "I couldn't find any relevant information on this page for that question."
