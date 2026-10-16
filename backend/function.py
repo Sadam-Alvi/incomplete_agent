@@ -1,12 +1,11 @@
 import trafilatura
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from context_compression import *
-# from langchain_experimental.text_splitter import SemanticChunker
-from sentence_transformers import SentenceTransformer
 import chromadb
 import uuid
 from urllib.parse import urlparse
 from threading import Lock
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from llm import *
 from youtube_transcript import *
 import re
@@ -15,10 +14,8 @@ import pandas as pd
 from get_content import *
 from getting_img_des_by_url import get_img_details
 
-
-
-model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-
+load_dotenv()
+model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 client = chromadb.PersistentClient(path="./database")
 collection = client.get_or_create_collection(
     name="page_data",
@@ -44,11 +41,7 @@ def preprocess_data(content: str, url: str) -> list:
     if not chunks:
         return []
     
-    embeddings = model.encode(
-        chunks,
-        normalize_embeddings=True,
-        convert_to_numpy=True
-    ).tolist()
+    embeddings = model.embed_documents(chunks)
 
 
 
@@ -118,7 +111,7 @@ def answer_the_query(question: str, url: str) -> str:
     question = rewrite_question(question)
     question = generate_query_variants(question)
 
-    embedded_query = model.encode(question,normalize_embeddings=True)
+    embedded_query = model.feature_extraction(model_name=model_name,text=[question])
     results = collection.query(
         query_embeddings=[embedded_query],
         n_results=40,

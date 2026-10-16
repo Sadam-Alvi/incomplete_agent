@@ -1,6 +1,10 @@
 
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+from dotenv import load_dotenv
+load_dotenv()
+
+model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 def compress_context(context: str, question: str) -> str:
     chunks = context.split("\n\n---\n\n")
 
@@ -23,16 +27,9 @@ def compress_context(context: str, question: str) -> str:
         return ""
 
     # Generate normalized embeddings
-    question_embedding = model.encode(
-        question,
-        normalize_embeddings=True
-    )
+    question_embedding = model.embed_documents([question])
 
-    chunk_embeddings = model.encode(
-        unique_chunks,
-        normalize_embeddings=True
-    )
-
+    chunk_embeddings = model.embed_documents(unique_chunks)
     # Calculate cosine similarity
     similarities = chunk_embeddings @ question_embedding
 
