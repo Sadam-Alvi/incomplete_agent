@@ -1,4 +1,3 @@
-import trafilatura
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from context_compression import *
 import chromadb

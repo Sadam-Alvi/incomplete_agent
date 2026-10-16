@@ -1,5 +1,4 @@
 import requests
-import trafilatura
 from urllib.parse import urlparse
 import pandas as pd
 import os
@@ -73,8 +72,6 @@ def get_content_from_url(url: str) -> str:
             
             if not text:
                 raise ValueError("Could not download webpage.")
-
-            # text = trafilatura.extract(downloaded)
             
 
             if not isinstance(text, str) or not text.strip():
