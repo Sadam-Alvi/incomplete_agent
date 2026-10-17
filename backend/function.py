@@ -1,5 +1,4 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from context_compression import *
 import chromadb
 import uuid
 from urllib.parse import urlparse
@@ -12,9 +11,16 @@ import os
 import pandas as pd
 from get_content import *
 from getting_img_des_by_url import get_img_details
-
+from light_embed import TextEmbedding
+import numpy as np
 load_dotenv()
-model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+
+
+# This downloads the model and its required config automatically
+
+model = TextEmbedding(
+    model_name_or_path="onnx-models/all-MiniLM-L6-v2-onnx"
+)
 client = chromadb.PersistentClient(path="./database")
 collection = client.get_or_create_collection(
     name="page_data",
@@ -40,13 +46,13 @@ def preprocess_data(content: str, url: str) -> list:
     if not chunks:
         return []
     
-    embeddings = model.embed_documents(chunks)
+    embeddings = np.asarray(model.encode(chunks))
 
 
 
     ids = [str(uuid.uuid4()) for _ in chunks]
     metadatas = [{"url": url, "chunk_index": i} for i in range(len(chunks))]
-    print(chunks)
+
     collection.add(
         ids=ids,
         documents=chunks,
@@ -70,10 +76,8 @@ def process_page(task_id, url):
         update_progress(task_id, "reading", 10, "Reading webpage...")
         content = get_content_from_url(url)
         img_data = get_img_details(url)
-        # print(img_data)
         content = f'{content} + \n\n\n {img_data}'
-        # print(content)
-
+     
         
         update_progress(task_id, "extracting", 35, "Extracting readable text...")
         if not content.strip():
@@ -111,7 +115,7 @@ def answer_the_query(question: str, url: str) -> str:
     question = rewrite_question(question)
     question = generate_query_variants(question)
 
-    embedded_query = model.embed_query(question)
+    embedded_query = np.asarray(model.encode(question))
     
     results = collection.query(
         query_embeddings=[embedded_query],
@@ -120,7 +124,7 @@ def answer_the_query(question: str, url: str) -> str:
     )
 
     docs = results["documents"][0] if results["documents"] else []
-    # print(docs)
+  
    
     if not docs:
         answer = "I couldn't find any relevant information on this page for that question."
@@ -130,7 +134,7 @@ def answer_the_query(question: str, url: str) -> str:
     
     
     context = "\n\n---\n\n".join(docs)
-    compressed_context = compress_context(context,question)
+
 
     answer = answer_the_given_question(question,context)
     return answer,context

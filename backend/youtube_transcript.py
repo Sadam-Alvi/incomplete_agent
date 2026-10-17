@@ -1,5 +1,7 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from urllib.parse import urlparse, parse_qs
+import os
+import pandas as pd
 api = YouTubeTranscriptApi()
 def load_or_create_df(path) -> pd.DataFrame:
    
