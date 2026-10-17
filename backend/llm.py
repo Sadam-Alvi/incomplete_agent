@@ -84,7 +84,7 @@ chain_with_history = RunnableWithMessageHistory(
 
 # ====================== MAIN FUNCTION ======================
 def answer_the_given_question(question: str, context: str, session_id: str = "default") -> str:
-    print(context)
+
     response = chain_with_history.invoke(
         {
             "question": question,

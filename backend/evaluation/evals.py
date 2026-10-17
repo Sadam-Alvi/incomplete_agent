@@ -27,11 +27,11 @@ POLL_INTERVAL = 1.5          # seconds between progress checks
 MAX_WAIT_SECONDS = 180       # max time to wait for analysis
 
 # Evaluation models (these do not replace your PagePal models)
-evaluator_llm =ChatGoogleGenerativeAI(
-    model="gemini-3.8-flash",
-    max_retries=3,
-    timeout=20,
+evaluator_llm =ChatGroq(
+    model="openai/gpt-oss-120b",
+    temperature=0.7
 )
+
 
 evaluator_embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-small-en-v1.5",
