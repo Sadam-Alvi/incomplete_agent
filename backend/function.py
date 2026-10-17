@@ -8,6 +8,7 @@ from llm import *
 from youtube_transcript import *
 import re
 import os
+import asyncio
 import pandas as pd
 from get_content import *
 from getting_img_des_by_url import get_img_details
@@ -74,7 +75,7 @@ def update_progress(task_id, stage, percent, message):
 def process_page(task_id, url):
     try:
         update_progress(task_id, "reading", 10, "Reading webpage...")
-        content = get_content_from_url(url)
+        content = asyncio.run(get_content_from_url(url))
         img_data = get_img_details(url)
         content = f'{content} + \n\n\n {img_data}'
      

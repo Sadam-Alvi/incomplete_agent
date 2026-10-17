@@ -20,7 +20,7 @@ def load_or_create_df(path) -> pd.DataFrame:
 df = load_or_create_df(r"C:\Users\Alvi\Desktop\agentic\incomplete_agent\content.csv"  ) # Load the CSV file into a DataFrame
 
 
-def get_content_from_url(url: str) -> str:
+async def get_content_from_url(url: str) -> str:
     if url in df['url'].values:
         return df[df['url'] == url]['content'].values[0]
     if not url or not url.strip():
@@ -57,7 +57,7 @@ def get_content_from_url(url: str) -> str:
             ),
             "Accept-Language": "en-US,en;q=0.9",
         }
-            response = requests.get(
+            response = await requests.get(
             url,
             headers=headers,
             timeout=20,

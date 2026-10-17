@@ -383,3 +383,31 @@ header p {
     margin: 5px 0;
     padding-left: 10px;
 }
+
+/* Dark theme for Markdown code blocks */
+pre {
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    padding: 14px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid #333;
+}
+
+/* Preserve code formatting */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+}
+
+/* Inline code */
+:not(pre) > code {
+    background-color: #2d2d2d !important;
+    color: #e6b450 !important;
+    padding: 2px 5px;
+    border-radius: 4px;
+}
