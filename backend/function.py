@@ -1,7 +1,7 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
 import uuid
-from urllib.parse import urlparse
+
 from threading import Lock
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from llm import *
@@ -75,7 +75,7 @@ def update_progress(task_id, stage, percent, message):
 def process_page(task_id, url):
     try:
         update_progress(task_id, "reading", 10, "Reading webpage...")
-        content = asyncio.run(get_content_from_url(url))
+        content = (get_content_from_url(url))
         img_data = get_img_details(url)
         content = f'{content} + \n\n\n {img_data}'
      
