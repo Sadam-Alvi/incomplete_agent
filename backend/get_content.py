@@ -39,8 +39,8 @@ def get_content_from_url(url: str) -> str:
     )
 
     if is_youtube:
-        text = get_youtube_transcript(url)
-        # text = ''
+        # text = get_youtube_transcript(url)
+        text = ' '
         
         
     
