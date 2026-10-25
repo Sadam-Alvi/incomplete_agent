@@ -1,5 +1,10 @@
-from sentence_transformers import SentenceTransformer
-import pandas as pd
+import os
+import json
+import time
+import requests
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from pathlib import Path
+from dotenv import load_dotenv
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import (
@@ -8,155 +13,194 @@ from ragas.metrics import (
     context_precision,
     context_recall,
 )
-from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
-import json
 from langchain_groq import ChatGroq
-from pathlib import Path
-import os
-import time
-import requests
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from light_embed import TextEmbedding
+from langchain_core.embeddings import Embeddings
+from langsmith import Client
+from uuid import uuid4
+from datetime import datetime, timezone
+# ==========================================
+# 1. CONFIGURATION
+# ==========================================
+
 load_dotenv()
 
-# ------------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------------
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-POLL_INTERVAL = 1.5          # seconds between progress checks
-MAX_WAIT_SECONDS = 180       # max time to wait for analysis
+API_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+TEST_FILE = Path(__file__).parent / "test.json"
 
-# Evaluation models (these do not replace your PagePal models)
-evaluator_llm =ChatGroq(
+POLL_INTERVAL = 1.5
+MAX_WAIT_SECONDS = 180
+
+# ==========================================
+# 2. EVALUATION MODELS
+# ==========================================
+
+llm = ChatGroq(
     model="openai/gpt-oss-120b",
-    temperature=0.7
-)
+    temperature=0,
+    timeout=60,
+    max_retries=2)
 
 
-evaluator_embeddings = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-small-en-v1.5",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}
-)
+class RagasEmbeddings(Embeddings):
+    def __init__(self):
+        self.model = TextEmbedding(
+            model_name_or_path="onnx-models/all-MiniLM-L6-v2-onnx"
+        )
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        vectors = list(self.model.encode(texts))
+        return [vector.tolist() if hasattr(vector, "tolist") else list(vector)
+                for vector in vectors]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_documents([text])[0]
 
 
-test_cases_path = Path(__file__).parent / "test.json"
+embeddings = RagasEmbeddings()
 
-with open(test_cases_path, "r", encoding="utf-8") as file:
+# ==========================================
+# 3. LOAD TEST CASES
+# ==========================================
+
+with open(TEST_FILE, "r", encoding="utf-8") as file:
     test_cases = json.load(file)
 
-# ------------------------------------------------------------------
-# Helper functions that talk to the FastAPI endpoints
-# ------------------------------------------------------------------
-def start_analysis(url: str) -> str:
-    """Call POST /analyze and return the task_id."""
-    resp = requests.post(
-        f"{API_BASE_URL}/analyze",
+# ==========================================
+# 4. API HELPER FUNCTIONS
+# ==========================================
+
+def start_analysis(url):
+    response = requests.post(
+        f"{API_URL}/analyze",
         json={"url": url},
-        timeout=30,
+        timeout=30
     )
-    resp.raise_for_status()
-    return resp.json()["task_id"]
+    response.raise_for_status()
+    return response.json()["task_id"]
 
 
-def wait_until_ready(task_id: str) -> dict:
-    """
-    Poll GET /progress/{task_id} until the analysis is finished
-    or an error occurs / timeout is reached.
-    """
-    start = time.time()
-    while True:
-        resp = requests.get(f"{API_BASE_URL}/progress/{task_id}", timeout=15)
-        resp.raise_for_status()
-        status = resp.json()
+def wait_for_analysis(task_id):
+    start_time = time.time()
 
-        stage = status.get("stage", "")
-        progress = status.get("progress", 0)
-        message = status.get("message", "")
-        error = status.get("error", False)
+    while time.time() - start_time < MAX_WAIT_SECONDS:
+        response = requests.get(
+            f"{API_URL}/progress/{task_id}",
+            timeout=15
+        )
+        response.raise_for_status()
 
-        print(f"  [{task_id[:8]}] stage={stage} progress={progress}% – {message}")
+        status = response.json()
 
-        if error:
-            raise RuntimeError(f"Analysis failed: {message}")
+        print(
+            f"Analysis: {status.get('stage')} | "
+            f"{status.get('progress', 0)}%"
+        )
 
-        # Adjust the finished condition to whatever your process_page sets
-        if stage in ("complete", "done", "ready") or progress >= 100:
-            return status
+        if status.get("error") or status.get("stage") == "failed":
+            raise RuntimeError(
+                status.get("message", "Analysis failed")
+            )
 
-        if time.time() - start > MAX_WAIT_SECONDS:
-            raise TimeoutError(f"Analysis timed out after {MAX_WAIT_SECONDS}s")
+        if (
+            status.get("stage") in ("complete", "done", "ready")
+            or status.get("progress", 0) >= 100
+        ):
+            return
 
         time.sleep(POLL_INTERVAL)
 
+    raise TimeoutError("Page analysis took too long")
 
-def ask_question(url: str, question: str) -> tuple[str, list]:
-    """Call POST /ask and return (answer, contexts)."""
-    resp = requests.post(
-        f"{API_BASE_URL}/ask",
-        json={"url": url, "question": question},
-        timeout=60,
+
+def ask_question(url, question):
+    response = requests.post(
+        f"{API_URL}/ask",
+        json={
+            "url": url,
+            "question": question,
+            'session_id':'1234'
+        },
+        timeout=60
     )
-    resp.raise_for_status()
-    data = resp.json()
-    return data["answer"], data.get("context", [])
+    response.raise_for_status()
+
+    data = response.json()
+
+    answer = data["answer"]
+    contexts = data.get("context", [])
+
+    # RAGAS expects a list of context strings.
+    if isinstance(contexts, str):
+        contexts = [contexts]
+    elif contexts is None:
+        contexts = []
+
+    return answer, contexts
 
 
-# ------------------------------------------------------------------
-# Main evaluation loop
-# ------------------------------------------------------------------
+# ==========================================
+# 5. RUN TEST CASES
+# ==========================================
+
 rows = []
 
-for i, case in enumerate(test_cases, 1):
+for number, case in enumerate(test_cases, start=1):
     url = case["url"]
     question = case["question"]
     ground_truth = case["ground_truth"]
 
-    print(f"\n[{i}/{len(test_cases)}] Processing: {question[:80]}...")
-    print(f"  URL: {url}")
+    print(f"\nTest {number}/{len(test_cases)}: {question}")
 
     try:
-        # 1. Start analysis
+        # Analyze the webpage or video.
         task_id = start_analysis(url)
-        print(f"  Started analysis → task_id={task_id}")
 
-        # 2. Wait until the page is processed
-        wait_until_ready(task_id)
+        # Wait until processing is finished.
+        wait_for_analysis(task_id)
 
-        # 3. Ask the question
+        # Get the answer and retrieved context.
         answer, contexts = ask_question(url, question)
-
-        # Ensure contexts is a list of strings (RAGAS expects list[str])
-        if isinstance(contexts, str):
-            contexts = [contexts]
-        elif contexts is None:
-            contexts = []
 
         rows.append({
             "question": question,
             "answer": answer,
             "contexts": contexts,
-            "ground_truth": ground_truth,
+            "ground_truth": ground_truth
         })
-        print(f"  ✓ Answer received (length={len(answer)})")
 
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        # Optionally still record a failed row so the dataset stays aligned
+        print("Answer received successfully")
+
+    except Exception as error:
+        print(f"Test failed: {error}")
+
+        # Keep the failure visible instead of scoring it as a valid answer.
         rows.append({
             "question": question,
-            "answer": f"ERROR: {str(e)}",
+            "answer": "",
             "contexts": [],
-            "ground_truth": ground_truth,
+            "ground_truth": ground_truth
         })
 
-# ------------------------------------------------------------------
-# Run RAGAS evaluation
-# ------------------------------------------------------------------
-if not rows:
-    raise RuntimeError("No successful test cases to evaluate.")
+# ==========================================
+# 6. RUN RAGAS EVALUATION
+# ==========================================
 
-dataset = Dataset.from_list(rows)
+if not rows:
+    raise RuntimeError("No test cases were processed")
+
+# Exclude failed API calls from metric calculations.
+valid_rows = [
+    row for row in rows
+    if row["answer"] and row["contexts"]
+]
+
+if not valid_rows:
+    raise RuntimeError(
+        "No successful test cases with answers and contexts"
+    )
+
+dataset = Dataset.from_list(valid_rows)
 
 results = evaluate(
     dataset=dataset,
@@ -166,28 +210,24 @@ results = evaluate(
         context_precision,
         context_recall,
     ],
-    llm=evaluator_llm,
-    embeddings=evaluator_embeddings,
-    raise_exceptions=False,   # continue even if some jobs fail
-    batch_size=1,             # run one sample at a time (slower but stable)
+    llm=llm,
+    embeddings=embeddings,
+    raise_exceptions=False,
+    batch_size=1
 )
 
-# Display and save
-print("\n" + "=" * 60)
-print(results)
+# ==========================================
+# 7. SAVE RESULTS
+# ==========================================
 
 results_df = results.to_pandas()
+
 results_df.to_csv("ragas_results.csv", index=False)
 
-print("\nIndividual metric scores (mean):")
+print("\n========== RAGAS RESULTS ==========")
+print(results_df)
+
+print("\n========== AVERAGE SCORES ==========")
 print(results_df.mean(numeric_only=True))
 
-print("\nSaved results to ragas_results.csv")
-
-
-
-
-
-
-
-
+print("\nResults saved to ragas_results.csv")

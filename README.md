@@ -152,7 +152,7 @@ The vector store is created in `backend/database`. If you want to reset stored e
 
 ## Notes
 
-- The extension is configured to call `https://extension-s-backend-7e95da56.fastapicloud.dev7` by default. If your API is running elsewhere, update `API_BASE` in `front-end/popup.js`.
+- The extension is configured to call `https://extension-s-backend-7e95da56.fastapicloud.dev` by default. If your API is running elsewhere, update `API_BASE` in `front-end/popup.js`.
 - CORS is intentionally permissive for local development. Restrict it before exposing the app beyond your machine.
 - `backend/evaluation/evals.py` is optional and can be used to benchmark the retrieval pipeline with sample questions.
 - The repository includes a local CSV file (`content.csv`) and uses it as part of the indexing workflow.

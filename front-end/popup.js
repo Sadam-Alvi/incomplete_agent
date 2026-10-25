@@ -5,12 +5,12 @@
 // CONFIGURATION
 // ========================================
 
-const API_BASE = "https://new-repo.fastapicloud.dev";
+// const API_BASE = "https://new-repo.fastapicloud.dev";
 
 // ========================================
 // DOM ELEMENTS
 // ========================================
- 
+
 const analyzeScreen = document.getElementById("analyze-screen");
 const chatScreen = document.getElementById("chat-screen");
 const pageUrlEl = document.getElementById("page-url");
@@ -30,54 +30,97 @@ const sendBtn = document.getElementById("send-btn");
 // ========================================
 
 let currentUrl = "";
+let currentSessionId = null;
 let chatHistory = [];
 let isPolling = false;
 let activeTaskId = null;
 let isSending = false;
+let sessionInfoElement = null;
 
 // ========================================
 // STORAGE HELPERS
 // ========================================
 
 function getChatKey(url) {
-  // Stable, consistent key for each page URL.
-  return "Webby_chat_" + encodeURIComponent(url);
+    return "Webby_chat_" + encodeURIComponent(url);
+}
+
+function getSessionKey(url) {
+    return "Webby_session_" + encodeURIComponent(url);
 }
 
 async function saveChat(url, history) {
-  try {
-    if (!url || !chrome.storage?.local) return;
+    try {
+        if (!url || !chrome.storage?.local) return;
 
-    await chrome.storage.local.set({
-      [getChatKey(url)]: history
-    });
-  } catch (error) {
-    console.error("Chat save error:", error);
-  }
+        await chrome.storage.local.set({
+            [getChatKey(url)]: history
+        });
+    } catch (error) {
+        console.error("Chat save error:", error);
+    }
 }
 
 async function loadChat(url) {
-  try {
-    if (!url || !chrome.storage?.local) return [];
+    try {
+        if (!url || !chrome.storage?.local) return [];
 
-    const key = getChatKey(url);
-    const result = await chrome.storage.local.get(key);
+        const key = getChatKey(url);
+        const result = await chrome.storage.local.get(key);
 
-    return Array.isArray(result[key]) ? result[key] : [];
-  } catch (error) {
-    console.error("Chat load error:", error);
-    return [];
-  }
+        return Array.isArray(result[key]) ? result[key] : [];
+    } catch (error) {
+        console.error("Chat load error:", error);
+        return [];
+    }
 }
 
 async function clearChat(url) {
-  try {
-    if (url && chrome.storage?.local) {
-      await chrome.storage.local.remove(getChatKey(url));
+    try {
+        if (url && chrome.storage?.local) {
+            await chrome.storage.local.remove(getChatKey(url));
+        }
+    } catch (error) {
+        console.error("Chat clear error:", error);
     }
-  } catch (error) {
-    console.error("Chat clear error:", error);
-  }
+}
+
+// Get an existing session ID or create a new one.
+async function getOrCreateSessionId(url) {
+    const key = getSessionKey(url);
+    const result = await chrome.storage.local.get(key);
+
+    if (result[key]) {
+        return result[key];
+    }
+
+    const sessionId = crypto.randomUUID();
+
+    await chrome.storage.local.set({
+        [key]: sessionId
+    });
+
+    return sessionId;
+}
+
+// Save a session ID returned by the backend.
+async function saveSessionId(url, sessionId) {
+    if (!url || !sessionId) return;
+
+    currentSessionId = sessionId;
+
+    await chrome.storage.local.set({
+        [getSessionKey(url)]: sessionId
+    });
+
+    updateSessionDisplay();
+}
+
+function updateSessionDisplay() {
+    if (sessionInfoElement) {
+        sessionInfoElement.textContent =
+            "Session ID: " + (currentSessionId || "Not assigned");
+    }
 }
 
 // ========================================
@@ -85,21 +128,21 @@ async function clearChat(url) {
 // ========================================
 
 async function apiRequest(endpoint, options = {}) {
-  const response = await fetch(`${API_BASE}${endpoint}`, options);
-  const raw = await response.text();
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const raw = await response.text();
 
-  console.log(`${endpoint} HTTP status:`, response.status);
-  console.log(`${endpoint} response:`, raw);
+    console.log(`${endpoint} HTTP status:`, response.status);
+    console.log(`${endpoint} response:`, raw);
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${raw}`);
-  }
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${raw}`);
+    }
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error(`${endpoint} did not return valid JSON.`);
-  }
+    try {
+        return JSON.parse(raw);
+    } catch {
+        throw new Error(`${endpoint} did not return valid JSON.`);
+    }
 }
 
 // ========================================
@@ -107,17 +150,17 @@ async function apiRequest(endpoint, options = {}) {
 // ========================================
 
 async function getCurrentTabUrl() {
-  const tabs = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  });
+    const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+    });
 
-  return tabs[0]?.url || null;
+    return tabs[0]?.url || null;
 }
 
 function isRestrictedUrl(url) {
-  return !url ||
-    /^(chrome|chrome-extension|edge|about|devtools):/i.test(url);
+    return !url ||
+        /^(chrome|chrome-extension|edge|about|devtools):/i.test(url);
 }
 
 // ========================================
@@ -125,44 +168,49 @@ function isRestrictedUrl(url) {
 // ========================================
 
 function showAnalyzeScreen() {
-  analyzeScreen.hidden = false;
-  analyzeScreen.style.display = "flex";
+    analyzeScreen.hidden = false;
+    analyzeScreen.style.display = "flex";
 
-  chatScreen.hidden = true;
-  chatScreen.style.display = "none";
+    chatScreen.hidden = true;
+    chatScreen.style.display = "none";
 }
 
 function showChatScreen() {
-  analyzeScreen.hidden = true;
-  analyzeScreen.style.display = "none";
+    analyzeScreen.hidden = true;
+    analyzeScreen.style.display = "none";
 
-  chatScreen.hidden = false;
-  chatScreen.style.display = "flex";
+    chatScreen.hidden = false;
+    chatScreen.style.display = "flex";
 
-  chatPageTitle.textContent = currentUrl;
-  chatMessages.replaceChildren();
+    chatPageTitle.textContent = currentUrl;
+    chatMessages.replaceChildren();
 
-  if (chatHistory.length === 0) {
-    createMessage(
-      "Hi! I've analyzed this page. Ask me anything about it.",
-      "bot"
+    // Display the session ID to the user.
+    sessionInfoElement = createMessage(
+        "Session ID: " + (currentSessionId || "Not assigned"),
+        "bot"
     );
-  } else {
-    chatHistory.forEach((message) => {
-      createMessage(
-        message.content,
-        message.role === "user" ? "user" : "bot"
-      );
-    });
-  }
 
-  scrollChatToBottom();
+    if (chatHistory.length === 0) {
+        createMessage(
+            "Hi! I've analyzed this page. Ask me anything about it.",
+            "bot"
+        );
+    } else {
+        chatHistory.forEach((message) => {
+            createMessage(
+                message.content,
+                message.role === "user" ? "user" : "bot"
+            );
+        });
+    }
+
+    scrollChatToBottom();
 }
 
 // ========================================
 // MESSAGE RENDERING
 // ========================================
-
 
 function createMessage(content, role = "bot") {
     const element = document.createElement("div");
@@ -185,7 +233,7 @@ function createMessage(content, role = "bot") {
 }
 
 function scrollChatToBottom() {
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // ========================================
@@ -193,69 +241,74 @@ function scrollChatToBottom() {
 // ========================================
 
 async function startAnalysis() {
-  isPolling = false;
-  activeTaskId = null;
-
-  try {
-    statusEl.textContent = "";
-    retryBtn.hidden = true;
-    progressBar.style.width = "0%";
-    progressPercent.textContent = "0%";
-    loadingText.textContent = "Checking webpage...";
-
-    showAnalyzeScreen();
-
-    currentUrl = await getCurrentTabUrl();
-
-    if (isRestrictedUrl(currentUrl)) {
-      pageUrlEl.textContent = "Cannot analyze this page";
-      statusEl.textContent =
-        "Open a normal webpage and try again.";
-      retryBtn.hidden = false;
-      return;
-    }
-
-    pageUrlEl.textContent = currentUrl;
-
-    // Restore previous conversation for this URL.
-    chatHistory = await loadChat(currentUrl);
-
-    if (chatHistory.length > 0) {
-      showChatScreen();
-      return;
-    }
-
-    loadingText.textContent = "Starting analysis...";
-
-    const data = await apiRequest("/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        url: currentUrl
-      })
-    });
-
-    if (!data.task_id) {
-      throw new Error("The /analyze response is missing task_id.");
-    }
-
-    activeTaskId = data.task_id;
-    isPolling = true;
-
-    await pollProgress(data.task_id);
-
-  } catch (error) {
-    console.error("Analysis failed:", error);
-
     isPolling = false;
     activeTaskId = null;
 
-    loadingText.textContent = "Analysis failed";
-    statusEl.textContent = error.message;
-    retryBtn.hidden = false;
-  }
+    try {
+        statusEl.textContent = "";
+        retryBtn.hidden = true;
+        progressBar.style.width = "0%";
+        progressPercent.textContent = "0%";
+        loadingText.textContent = "Checking webpage...";
+
+        showAnalyzeScreen();
+
+        currentUrl = await getCurrentTabUrl();
+
+        if (isRestrictedUrl(currentUrl)) {
+            pageUrlEl.textContent = "Cannot analyze this page";
+            statusEl.textContent =
+                "Open a normal webpage and try again.";
+            retryBtn.hidden = false;
+            return;
+        }
+
+        pageUrlEl.textContent = currentUrl;
+
+        // Restore or create the session ID.
+        currentSessionId = await getOrCreateSessionId(currentUrl);
+
+        // Restore the previous conversation for this URL.
+        chatHistory = await loadChat(currentUrl);
+
+        if (chatHistory.length > 0) {
+            showChatScreen();
+            return;
+        }
+
+        loadingText.textContent = "Starting analysis...";
+
+        const data = await apiRequest("/analyze", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                url: currentUrl
+            })
+        });
+
+        if (!data.task_id) {
+            throw new Error(
+                "The /analyze response is missing task_id."
+            );
+        }
+
+        activeTaskId = data.task_id;
+        isPolling = true;
+
+        await pollProgress(data.task_id);
+
+    } catch (error) {
+        console.error("Analysis failed:", error);
+
+        isPolling = false;
+        activeTaskId = null;
+
+        loadingText.textContent = "Analysis failed";
+        statusEl.textContent = error.message;
+        retryBtn.hidden = false;
+    }
 }
 
 // ========================================
@@ -263,54 +316,54 @@ async function startAnalysis() {
 // ========================================
 
 async function pollProgress(taskId) {
-  while (isPolling && activeTaskId === taskId) {
-    try {
-      const data = await apiRequest(
-        `/progress/${encodeURIComponent(taskId)}`
-      );
+    while (isPolling && activeTaskId === taskId) {
+        try {
+            const data = await apiRequest(
+                `/progress/${encodeURIComponent(taskId)}`
+            );
 
-      loadingText.textContent =
-        data.message || "Analyzing webpage...";
+            loadingText.textContent =
+                data.message || "Analyzing webpage...";
 
-      const progress = Math.max(
-        0,
-        Math.min(100, Number(data.progress) || 0)
-      );
+            const progress = Math.max(
+                0,
+                Math.min(100, Number(data.progress) || 0)
+            );
 
-      progressBar.style.width = `${progress}%`;
-      progressPercent.textContent = `${progress}%`;
+            progressBar.style.width = `${progress}%`;
+            progressPercent.textContent = `${progress}%`;
 
-      if (data.error || data.stage === "failed") {
-        throw new Error(
-          typeof data.error === "string"
-            ? data.error
-            : data.message || "Page analysis failed."
-        );
-      }
+            if (data.error || data.stage === "failed") {
+                throw new Error(
+                    typeof data.error === "string"
+                        ? data.error
+                        : data.message || "Page analysis failed."
+                );
+            }
 
-      if (data.stage === "complete" || progress >= 100) {
-        isPolling = false;
-        activeTaskId = null;
+            if (data.stage === "complete" || progress >= 100) {
+                isPolling = false;
+                activeTaskId = null;
 
-        chatHistory = await loadChat(currentUrl);
-        showChatScreen();
-        return;
-      }
+                chatHistory = await loadChat(currentUrl);
+                showChatScreen();
+                return;
+            }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    } catch (error) {
-      console.error("Progress polling failed:", error);
+        } catch (error) {
+            console.error("Progress polling failed:", error);
 
-      isPolling = false;
-      activeTaskId = null;
+            isPolling = false;
+            activeTaskId = null;
 
-      loadingText.textContent = "Analysis failed";
-      statusEl.textContent = error.message;
-      retryBtn.hidden = false;
-      return;
+            loadingText.textContent = "Analysis failed";
+            statusEl.textContent = error.message;
+            retryBtn.hidden = false;
+            return;
+        }
     }
-  }
 }
 
 // ========================================
@@ -318,29 +371,31 @@ async function pollProgress(taskId) {
 // ========================================
 
 function extractAnswer(data) {
-  let answer = data?.answer;
+    let answer = data?.answer;
 
-  if (answer == null) {
-    throw new Error("The API response does not contain an answer.");
-  }
+    if (answer == null) {
+        throw new Error(
+            "The API response does not contain an answer."
+        );
+    }
 
-  if (typeof answer === "object") {
-    answer =
-      answer.content ??
-      answer.output ??
-      answer.text ??
-      JSON.stringify(answer, null, 2);
-  }
+    if (typeof answer === "object") {
+        answer =
+            answer.content ??
+            answer.output ??
+            answer.text ??
+            JSON.stringify(answer, null, 2);
+    }
 
-  if (typeof answer !== "string") {
-    answer = String(answer);
-  }
+    if (typeof answer !== "string") {
+        answer = String(answer);
+    }
 
-  if (!answer.trim()) {
-    throw new Error("The LLM returned an empty answer.");
-  }
+    if (!answer.trim()) {
+        throw new Error("The LLM returned an empty answer.");
+    }
 
-  return answer;
+    return answer;
 }
 
 // ========================================
@@ -348,87 +403,95 @@ function extractAnswer(data) {
 // ========================================
 
 chatForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  if (isSending) return;
+    if (isSending) return;
 
-  const question = questionInput.value.trim();
+    const question = questionInput.value.trim();
 
-  if (!question) return;
+    if (!question) return;
 
-  if (!currentUrl) {
-    createMessage("No webpage is selected. Reopen PagePal.", "bot");
-    return;
-  }
+    if (!currentUrl) {
+        createMessage(
+            "No webpage is selected. Reopen Webby Chat.",
+            "bot"
+        );
+        return;
+    }
 
-  isSending = true;
-  questionInput.disabled = true;
-  sendBtn.disabled = true;
+    isSending = true;
+    questionInput.disabled = true;
+    sendBtn.disabled = true;
 
-  // Display the question immediately.
-  createMessage(question, "user");
-  questionInput.value = "";
+    // Display the question immediately.
+    createMessage(question, "user");
+    questionInput.value = "";
 
-  // Add a visible placeholder for the LLM response.
-  const replyElement = createMessage("Thinking...", "bot thinking");
+    // Placeholder for the response.
+    const replyElement = createMessage("Thinking...", "bot thinking");
 
-  // Remember history length so a failed exchange can be rolled back.
-  const previousHistoryLength = chatHistory.length;
-
-  chatHistory.push({
-    role: "user",
-    content: question
-  });
-
-  try {
-    await saveChat(currentUrl, chatHistory);
-
-    const data = await apiRequest("/ask", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        url: currentUrl,
-        question: question
-      })
-    });
-
-    console.log("Complete /ask response:", data);
-
-    const answer = extractAnswer(data);
-
-    // Plain text rendering avoids Markdown-renderer failures.
-    replyElement.className = "message bot";
-    renderMarkdown(replyElement, answer);
+    const previousHistoryLength = chatHistory.length;
 
     chatHistory.push({
-      role: "assistant",
-      content: answer
+        role: "user",
+        content: question
     });
 
-    await saveChat(currentUrl, chatHistory);
+    try {
+        await saveChat(currentUrl, chatHistory);
 
-    console.log("LLM answer displayed:", answer);
+        const data = await apiRequest("/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                url: currentUrl,
+                question: question,
+                session_id: currentSessionId
+            })
+        });
 
-  } catch (error) {
-    console.error("Chat failed:", error);
+        console.log("Complete /ask response:", data);
 
-    replyElement.className = "message bot";
-    replyElement.textContent = `Error: ${error.message}`;
+        // If the backend returns a session ID, save and display it.
+        if (data.session_id) {
+            await saveSessionId(currentUrl, data.session_id);
+        }
 
-    // Do not save a failed exchange as a completed conversation.
-    chatHistory = chatHistory.slice(0, previousHistoryLength);
-    await saveChat(currentUrl, chatHistory);
+        const answer = extractAnswer(data);
 
-  } finally {
-    isSending = false;
-    questionInput.disabled = false;
-    sendBtn.disabled = false;
-    questionInput.focus();
+        replyElement.className = "message bot";
+        renderMarkdown(replyElement, answer);
 
-    scrollChatToBottom();
-  }
+        chatHistory.push({
+            role: "assistant",
+            content: answer
+        });
+
+        await saveChat(currentUrl, chatHistory);
+
+        console.log("LLM answer displayed:", answer);
+        console.log("Current session ID:", currentSessionId);
+
+    } catch (error) {
+        console.error("Chat failed:", error);
+
+        replyElement.className = "message bot";
+        replyElement.textContent = `Error: ${error.message}`;
+
+        // Roll back the failed exchange.
+        chatHistory = chatHistory.slice(0, previousHistoryLength);
+        await saveChat(currentUrl, chatHistory);
+
+    } finally {
+        isSending = false;
+        questionInput.disabled = false;
+        sendBtn.disabled = false;
+        questionInput.focus();
+
+        scrollChatToBottom();
+    }
 });
 
 // ========================================
@@ -436,7 +499,7 @@ chatForm.addEventListener("submit", async (event) => {
 // ========================================
 
 retryBtn.addEventListener("click", () => {
-  startAnalysis();
+    startAnalysis();
 });
 
 // ========================================
@@ -444,19 +507,24 @@ retryBtn.addEventListener("click", () => {
 // ========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  startAnalysis();
+    startAnalysis();
 });
+
+// ========================================
+// MARKDOWN RENDERING
+// ========================================
 
 function renderMarkdown(element, content) {
     const markdown = String(content ?? "");
 
-    if (typeof marked === "undefined" ||
-        typeof DOMPurify === "undefined") {
+    if (
+        typeof marked === "undefined" ||
+        typeof DOMPurify === "undefined"
+    ) {
         element.textContent = markdown;
         return;
     }
 
     const html = marked.parse(markdown);
-
     element.innerHTML = DOMPurify.sanitize(html);
 }

@@ -1,102 +1,53 @@
+
 [
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What distinguishes a feedforward neural network from a recurrent neural network?",
-    "ground_truth": "A feedforward neural network passes information from input to output without cycles, whereas a recurrent neural network uses connections that can form cycles."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What is the goal of the neural network built in the video?",
+    "ground_truth": "The goal is to build a neural network that can recognize handwritten digits."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What are the main layers of a feedforward neural network?",
-    "ground_truth": "A feedforward neural network typically consists of an input layer, one or more hidden layers, and an output layer."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "How does the video describe a neuron?",
+    "ground_truth": "A neuron is described as a unit that holds a number between 0 and 1."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What does the input layer do?",
-    "ground_truth": "The input layer receives the input features and passes their representations into the network for processing."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "How many input neurons correspond to the pixels of a 28-by-28 image?",
+    "ground_truth": "A 28-by-28 image has 784 pixels, so the input layer contains 784 neurons, each corresponding to a pixel."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What does the output layer represent?",
-    "ground_truth": "The output layer produces the network's final output, such as a prediction or classification."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What do the weights in a neural network represent in the video's explanation?",
+    "ground_truth": "The weights determine which pixel patterns a neuron responds to by controlling the contributions of the connected input neurons."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "How does a multilayer perceptron differ from a single-layer perceptron?",
-    "ground_truth": "A multilayer perceptron has one or more hidden layers between its input and output layers, while a single-layer perceptron has no hidden layer."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What is the role of a bias in a neuron?",
+    "ground_truth": "A bias shifts the weighted sum before the activation function, influencing how large the weighted sum must be for the neuron to become meaningfully active."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "Why are hidden layers important for learning complex patterns?",
-    "ground_truth": "Hidden layers transform input representations, and with suitable nonlinear activation functions, they enable a network to learn complex relationships."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What does the video suggest neurons in later layers might learn to recognize?",
+    "ground_truth": "The video suggests that neurons in the second layer might respond to small edges, while neurons in later layers might recognize combinations of edges or more complex patterns."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is the purpose of an activation function?",
-    "ground_truth": "An activation function transforms a neuron's input and can introduce nonlinearity, allowing a neural network to model complex relationships."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What does learning mean in the neural network explanation?",
+    "ground_truth": "Learning means finding suitable values for the network's weights and biases so that it can solve the task."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What would happen if every layer used only linear transformations?",
-    "ground_truth": "Composing linear transformations produces another linear transformation, so adding hidden layers without nonlinear activation functions does not provide the expressive power of a nonlinear network."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "Approximately how many weights and biases does the network described in the video have?",
+    "ground_truth": "The video states that the network has almost exactly 13,000 weights and biases."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is a perceptron?",
-    "ground_truth": "A perceptron is a basic artificial neuron or neural-network model that computes an output from weighted inputs and a threshold or activation rule."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "Why might recognizing edges and patterns in layers be useful?",
+    "ground_truth": "Recognizing edges and patterns can help with image recognition and other tasks, such as parsing speech into sounds, syllables, words, phrases, and more abstract thoughts."
   },
   {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "Can a single-layer perceptron solve the XOR problem?",
-    "ground_truth": "A standard single-layer perceptron cannot represent the XOR function because XOR is not linearly separable."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "Why is the XOR problem important in neural-network history?",
-    "ground_truth": "The XOR problem illustrates the limitations of a single-layer perceptron and motivates the use of multilayer networks to represent nonlinear relationships."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is a weighted sum in an artificial neuron?",
-    "ground_truth": "A weighted sum combines input values by multiplying each input by its corresponding weight and adding the results, often with a bias term."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What role do weights play in a neural network?",
-    "ground_truth": "Weights determine the strength and influence of connections between neurons and are adjusted during training to improve the network's predictions."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is the difference between a shallow and a deep neural network?",
-    "ground_truth": "A shallow neural network has relatively few hidden layers, whereas a deep neural network contains multiple hidden layers."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "How does information travel through the layers of a feedforward network?",
-    "ground_truth": "Information travels from the input layer through successive hidden layers, if present, and reaches the output layer without circulating through cycles."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "Does a feedforward neural network necessarily contain hidden layers?",
-    "ground_truth": "No. A feedforward neural network can have no hidden layers, as in a single-layer perceptron, or have one or more hidden layers."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is forward propagation?",
-    "ground_truth": "Forward propagation is the process of passing input values through a neural network's layers to calculate its output."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is the relationship between network architecture and representational capacity?",
-    "ground_truth": "A network's architecture, including its layers, neurons, connections, and activation functions, affects the functions and patterns it can represent."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "Can a feedforward neural network be used for classification?",
-    "ground_truth": "Yes. A feedforward neural network can learn mappings from input features to outputs and can be used for classification tasks."
-  },
-  {
-    "url": "https://en.wikipedia.org/wiki/Feedforward_neural_network",
-    "question": "What is the difference between forward propagation and backpropagation?",
-    "ground_truth": "Forward propagation computes network outputs from inputs, while backpropagation propagates error-related gradients backward through the network to help calculate parameter updates during training."
+    "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
+    "question": "What does the video say about the relationship between neural networks and the brain?",
+    "ground_truth": "The video says that neural networks are inspired by the brain."
   }
 ]
