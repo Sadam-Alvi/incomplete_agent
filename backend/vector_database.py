@@ -77,3 +77,18 @@ def retrieve_chunks(question: str, top_k: int, url: str):
         })
 
     return data
+
+def video_chunks_exist(url: str) -> bool:
+    try:
+        response = index.documents.fetch(
+            namespace="webby-chat",
+            filter={"url": {"$eq": url}},
+            include_fields=["url"],
+            limit=1,
+        )
+
+        return bool(response.documents)
+
+    except Exception as error:
+        print(f"Pinecone existence check failed: {error}")
+        raise

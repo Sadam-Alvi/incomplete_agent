@@ -10,20 +10,8 @@ from langsmith import traceable
 load_dotenv()
 API_KEY = os.environ["API_KEY"]
 API_URL = "https://transcriptapi.com/api/v2/youtube/transcript"
-CSV_PATH = r"content.csv"
 
 
-def load_or_create_df(path: str) -> pd.DataFrame:
-    if os.path.exists(path):
-        df = pd.read_csv(path)
-        if not {"url", "content"}.issubset(df.columns):
-            return pd.DataFrame(columns=["url", "content"])
-        return df[["url", "content"]]
-
-    return pd.DataFrame(columns=["url", "content"])
-
-
-df = load_or_create_df(CSV_PATH)
 
 
 def get_youtube_id(video_url: str) -> str | None:
@@ -45,16 +33,14 @@ def get_youtube_id(video_url: str) -> str | None:
 
 @traceable(name="getting_transcript", run_type="retriever")
 def get_youtube_transcript(video_url: str) -> str:
-    global df
+    
 
     video_id = get_youtube_id(video_url)
     if not video_id:
         raise ValueError(f"Invalid YouTube URL: {video_url}")
 
     # Check cache using the original URL
-    cached = df.loc[df["url"] == video_url, "content"]
-    if not cached.empty and pd.notna(cached.iloc[0]):
-        return str(cached.iloc[0])
+  
 
     try:
         response = requests.get(
@@ -83,16 +69,9 @@ def get_youtube_transcript(video_url: str) -> str:
             raise ValueError("The API returned an empty transcript.")
 
         # Update the in-memory cache
-        df = pd.concat(
-            [
-                df,
-                pd.DataFrame([{"url": video_url, "content": text_only}]),
-            ],
-            ignore_index=True,
-        )
+    
 
-        # Persist the cache to disk
-        df.to_csv(CSV_PATH, index=False)
+      
 
         return text_only
 
@@ -104,8 +83,7 @@ def get_youtube_transcript(video_url: str) -> str:
 
 
 def get_content_from_url(url: str) -> str:
-    if url in df['url'].values:
-        return df[df['url'] == url]['content'].values[0]
+
     if not url or not url.strip():
         raise ValueError("URL cannot be empty.")
 
@@ -129,6 +107,7 @@ def get_content_from_url(url: str) -> str:
     else:   
         raise ValueError("Currently this extension is only for youtube video, please open  a youtube video, in future i'll add reading of other pages capability too")
     
+
 
 
 

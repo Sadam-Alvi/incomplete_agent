@@ -1,5 +1,6 @@
 
-const API_BASE = " https://new-repo.fastapicloud.dev";
+const API_BASE = "https://new-repo.fastapicloud.dev";
+// const API_BASE = "http://127.0.0.1:8000";
 
 // ==========================================
 // 1. DOM ELEMENTS
@@ -189,10 +190,18 @@ function showAnalyzeScreen() {
     if (analyzeScreen) analyzeScreen.hidden = false;
     if (chatScreen) chatScreen.hidden = true;
 }
-
 function showChatScreen() {
-    if (analyzeScreen) analyzeScreen.hidden = true;
-    if (chatScreen) chatScreen.hidden = false;
+    console.log("Switching to chat screen");
+
+    if (analyzeScreen) {
+        analyzeScreen.hidden = true;
+        analyzeScreen.style.display = "none";
+    }
+
+    if (chatScreen) {
+        chatScreen.hidden = false;
+        chatScreen.style.display = "flex";
+    }
 }
 
 // ==========================================
