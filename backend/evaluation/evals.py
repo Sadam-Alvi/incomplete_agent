@@ -1,6 +1,5 @@
 import os
 import json
-import time
 import requests
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from pathlib import Path
@@ -12,20 +11,25 @@ from ragas.metrics import (
     answer_relevancy,
     context_precision,
     context_recall,
+    answer_correctness
 )
 from langchain_groq import ChatGroq
 from light_embed import TextEmbedding
 from langchain_core.embeddings import Embeddings
-from langsmith import Client
-from uuid import uuid4
-from datetime import datetime, timezone
+
+
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
 
+
+# 1. Load your API key from the .env file
 load_dotenv()
 
-API_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7)
+
+
+API_URL = "http://localhost:8000"
 TEST_FILE = Path(__file__).parent / "test.json"
 
 POLL_INTERVAL = 1.5
@@ -34,88 +38,56 @@ MAX_WAIT_SECONDS = 180
 # ==========================================
 # 2. EVALUATION MODELS
 # ==========================================
-
-llm = ChatGroq(
-    model="openai/gpt-oss-120b",
-    temperature=0,
-    timeout=60,
-    max_retries=2)
+'''`Error, Embeddings has no attribute embed_documents` thats why using this class'''
 
 
 class RagasEmbeddings(Embeddings):
     def __init__(self):
-        self.model = TextEmbedding(
-            model_name_or_path="onnx-models/all-MiniLM-L6-v2-onnx"
+        self.model_name = "onnx-models/all-MiniLM-L6-v2-onnx"
+        self.encoder = TextEmbedding(
+            model_name_or_path=self.model_name
         )
 
+        # Required by RAGAS usage tracking
+        self.model = self.model_name
+
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        vectors = list(self.model.encode(texts))
-        return [vector.tolist() if hasattr(vector, "tolist") else list(vector)
-                for vector in vectors]
+        vectors = self.encoder.encode(texts)
+        return [
+            v.tolist() if hasattr(v, "tolist") else list(v)
+            for v in vectors
+        ]
 
     def embed_query(self, text: str) -> list[float]:
         return self.embed_documents([text])[0]
 
 
-embeddings = RagasEmbeddings()
+# 1. Create your embedding object
+embedding_object = RagasEmbeddings()
 
+# 2. Wrap it for RAGAS
+embeddings = LangchainEmbeddingsWrapper(embedding_object)
+
+
+
+
+# ==========================================
 # ==========================================
 # 3. LOAD TEST CASES
 # ==========================================
 
 with open(TEST_FILE, "r", encoding="utf-8") as file:
     test_cases = json.load(file)
-
 # ==========================================
 # 4. API HELPER FUNCTIONS
 # ==========================================
 
-def start_analysis(url):
-    response = requests.post(
-        f"{API_URL}/analyze",
-        json={"url": url},
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()["task_id"]
 
-
-def wait_for_analysis(task_id):
-    start_time = time.time()
-
-    while time.time() - start_time < MAX_WAIT_SECONDS:
-        response = requests.get(
-            f"{API_URL}/progress/{task_id}",
-            timeout=15
-        )
-        response.raise_for_status()
-
-        status = response.json()
-
-        print(
-            f"Analysis: {status.get('stage')} | "
-            f"{status.get('progress', 0)}%"
-        )
-
-        if status.get("error") or status.get("stage") == "failed":
-            raise RuntimeError(
-                status.get("message", "Analysis failed")
-            )
-
-        if (
-            status.get("stage") in ("complete", "done", "ready")
-            or status.get("progress", 0) >= 100
-        ):
-            return
-
-        time.sleep(POLL_INTERVAL)
-
-    raise TimeoutError("Page analysis took too long")
 
 
 def ask_question(url, question):
     response = requests.post(
-        f"{API_URL}/ask",
+        f"{API_URL}/evaluate/answer",
         json={
             "url": url,
             "question": question,
@@ -145,6 +117,7 @@ def ask_question(url, question):
 
 rows = []
 
+
 for number, case in enumerate(test_cases, start=1):
     url = case["url"]
     question = case["question"]
@@ -153,15 +126,10 @@ for number, case in enumerate(test_cases, start=1):
     print(f"\nTest {number}/{len(test_cases)}: {question}")
 
     try:
-        # Analyze the webpage or video.
-        task_id = start_analysis(url)
-
-        # Wait until processing is finished.
-        wait_for_analysis(task_id)
 
         # Get the answer and retrieved context.
         answer, contexts = ask_question(url, question)
-
+       
         rows.append({
             "question": question,
             "answer": answer,
@@ -200,7 +168,10 @@ if not valid_rows:
         "No successful test cases with answers and contexts"
     )
 
+
 dataset = Dataset.from_list(valid_rows)
+
+
 
 results = evaluate(
     dataset=dataset,
@@ -209,11 +180,12 @@ results = evaluate(
         answer_relevancy,
         context_precision,
         context_recall,
+        answer_correctness,
     ],
     llm=llm,
     embeddings=embeddings,
-    raise_exceptions=False,
-    batch_size=1
+    raise_exceptions=True,
+    batch_size=10,
 )
 
 # ==========================================

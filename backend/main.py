@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from uuid import uuid4
 from function import tasks, tasks_lock, process_page
-from answer_question import answer_the_query
+from fastapi.responses import StreamingResponse
+from answer_question import answer_the_query_stream,answer_my_question
 app = FastAPI()
 
 app.add_middleware(
@@ -44,16 +45,27 @@ async def get_progress(task_id: str):
             raise HTTPException(status_code=404, detail="Analysis task not found.")
         return task
 
-@app.post("/ask")
-def ask_question(request: AskRequest):
-    
-    
-    answer,context = answer_the_query(request.question, request.url,request.session_id)
-    return {
-        "question": request.question,
-        "answer": answer,
-        'context':context
-    }
+
+
+@app.post("/ask/stream")
+async def ask_question(request: AskRequest):
+    return StreamingResponse(
+        answer_the_query_stream(
+            question=request.question,
+            url=request.url,
+            session_id=request.session_id
+        ),
+        media_type="text/plain"
+    )
+
+
+
+'''Added this endpoint js for eveluation coz streaming wasnt working with evaulation script'''
+# @app.post('/evaluate/answer')
+# def ask(request:AskRequest):
+#     question = request.question
+#     answer,context = answer_my_question(question,request.url)
+#     return {'answer':answer,'context':context}
 
 if __name__ == "__main__":
     import uvicorn

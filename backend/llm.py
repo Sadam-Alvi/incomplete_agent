@@ -8,6 +8,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_groq import ChatGroq
 from langsmith import traceable
+from fastapi.responses import StreamingResponse
+
 # 1. Load environment variables (API keys)
 load_dotenv()
 
@@ -23,7 +25,7 @@ Rules:
 3. If the context does not contain enough information, state that the answer is not available on the page.
 4. Give a concise answer that directly addresses the question.
 5. Every factual claim must be supported by the context.
-
+6. Dont answer like 'this script says', instead answer like 'in the given video'
 Answer the user's question ONLY based on the provided video transcript:
 {context}"""),
     MessagesPlaceholder(variable_name="history"),
@@ -65,9 +67,42 @@ chain_with_history = RunnableWithMessageHistory(
 
 # 8. Main execution function
 @traceable(name="generate_answer")
-def answer_the_given_question(question: str, context: str, session_id: str = "default") -> str:
-    response = chain_with_history.invoke(
-        {"question": question, "context": context},
-        config={"configurable": {"session_id": session_id}}
-    )
-    return response
+async def answer_the_given_question_stream(
+    question: str,
+    context: str,
+    session_id: str = "default"
+):
+    async for chunk in chain_with_history.astream(
+        {
+            "question": question,
+            "context": context,
+        },
+        config={
+            "configurable": {
+                "session_id": session_id
+            }
+        }
+    ):
+        if chunk:
+            yield chunk
+
+
+'''Added this function js for eveluation coz streaming wasnt working with evaulation script'''
+# def answer_the_given_question(
+#     question: str,
+#     context: str,
+#     session_id: str = "default"
+# ) -> str:
+#     response = chain_with_history.invoke(
+#         {
+#             "question": question,
+#             "context": context,
+#         },
+#         config={
+#             "configurable": {
+#                 "session_id": session_id
+#             }
+#         }
+#     )
+
+#     return response

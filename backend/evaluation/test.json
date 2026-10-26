@@ -2,52 +2,52 @@
 [
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What is the goal of the neural network built in the video?",
-    "ground_truth": "The goal is to build a neural network that can recognize handwritten digits."
+    "question": "What is Machine Learning?",
+    "ground_truth": "It is the science of building models that solve real-world business problems and predict future outcomes."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "How does the video describe a neuron?",
-    "ground_truth": "A neuron is described as a unit that holds a number between 0 and 1."
+    "question": "How does the ML lifecycle work?",
+    "ground_truth": "It involves building an end-to-end pipeline that transforms raw data into actionable predictions"
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "How many input neurons correspond to the pixels of a 28-by-28 image?",
-    "ground_truth": "A 28-by-28 image has 784 pixels, so the input layer contains 784 neurons, each corresponding to a pixel."
+    "question": "Why is Feature Engineering important?Why is Feature Engineering important?",
+    "ground_truth": "It is the process of selecting and transforming raw data into meaningful inputs to improve model performance."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What do the weights in a neural network represent in the video's explanation?",
-    "ground_truth": "The weights determine which pixel patterns a neuron responds to by controlling the contributions of the connected input neurons."
+    "question": "What are Regression algorithms?",
+    "ground_truth": "These are algorithms used to forecast continuous numerical values like house prices or future sales."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What is the role of a bias in a neuron?",
-    "ground_truth": "A bias shifts the weighted sum before the activation function, influencing how large the weighted sum must be for the neuron to become meaningfully active."
+    "question": "When to use Logistic Regression?",
+    "ground_truth": "It is used for classification tasks where the target variable consists of two distinct categories."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What does the video suggest neurons in later layers might learn to recognize?",
-    "ground_truth": "The video suggests that neurons in the second layer might respond to small edges, while neurons in later layers might recognize combinations of edges or more complex patterns."
+    "question": "How do Decision Trees function?",
+    "ground_truth": "They use a tree-like structure of nodes and branches to make split-based decisions for classification or regression"
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What does learning mean in the neural network explanation?",
-    "ground_truth": "Learning means finding suitable values for the network's weights and biases so that it can solve the task."
+    "question": "What is the Bias-Variance Tradeoff?",
+    "ground_truth": "It is the balance between model simplicity and complexity to ensure accurate performance on new, unseen data."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "Approximately how many weights and biases does the network described in the video have?",
-    "ground_truth": "The video states that the network has almost exactly 13,000 weights and biases."
+    "question": "What are Ensemble Models? ",
+    "ground_truth": " These are techniques like Random Forest and XGBoost that combine multiple base learners to improve predictive accuracy."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "Why might recognizing edges and patterns in layers be useful?",
-    "ground_truth": "Recognizing edges and patterns can help with image recognition and other tasks, such as parsing speech into sounds, syllables, words, phrases, and more abstract thoughts."
+    "question": "How does Clustering work?",
+    "ground_truth": "It groups data points into non-overlapping clusters based on inherent similarities without predefined labels."
   },
   {
     "url": "https://www.youtube.com/watch?v=RAniuQEl10s",
-    "question": "What does the video say about the relationship between neural networks and the brain?",
-    "ground_truth": "The video says that neural networks are inspired by the brain."
+    "question": "What is Principal Component Analysis",
+    "ground_truth":"It is a dimensionality reduction technique used to simplify high-dimensional data while preserving essential information."
   }
 ]
