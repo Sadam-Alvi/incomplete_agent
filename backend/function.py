@@ -1,4 +1,5 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_experimental.text_splitter import SemanticChunker
 import uuid
 from threading import Lock
 from llm import *
@@ -23,9 +24,8 @@ tasks_lock = Lock()
 
 def preprocess_data(content: str, url: str) -> list:
     text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=600,        # Maximum number of characters per chunk
-    length_function=len,   # How to measure chunk size
-    is_separator_regex=False,
+    embeddings, 
+    breakpoint_threshold_type="percentile" 
 )
     chunks = text_splitter.split_text(content)
     records_length = store_chunks(url,chunks)

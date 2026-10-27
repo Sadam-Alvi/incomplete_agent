@@ -13,22 +13,25 @@ from ragas.metrics import (
     context_recall,
     answer_correctness
 )
-from langchain_groq import ChatGroq
+# from langchain_groq import ChatGroq
+from langchain_openrouter import ChatOpenRouter
 from light_embed import TextEmbedding
 from langchain_core.embeddings import Embeddings
-
+from ragas.llms import LangchainLLMWrapper
 
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
 
-
-# 1. Load your API key from the .env file
 load_dotenv()
 
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7)
-
-
+# Ensure you use a valid Groq or custom endpoint configuration if needed
+# model = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7,timeout=60.0, max_retries=3)
+model = ChatOpenRouter(
+    model="nvidia/nemotron-3-ultra-550b-a55b:free",
+    temperature=0.8,
+)
+llm = LangchainLLMWrapper(model)
 API_URL = "http://localhost:8000"
 TEST_FILE = Path(__file__).parent / "test.json"
 
@@ -38,17 +41,14 @@ MAX_WAIT_SECONDS = 180
 # ==========================================
 # 2. EVALUATION MODELS
 # ==========================================
-'''`Error, Embeddings has no attribute embed_documents` thats why using this class'''
-
-
+'''`light_embed has no attribute embed documents` thats why using this class'''
 class RagasEmbeddings(Embeddings):
     def __init__(self):
         self.model_name = "onnx-models/all-MiniLM-L6-v2-onnx"
         self.encoder = TextEmbedding(
             model_name_or_path=self.model_name
         )
-
-        # Required by RAGAS usage tracking
+        # Required by Ragas usage tracking/metadata
         self.model = self.model_name
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -62,28 +62,23 @@ class RagasEmbeddings(Embeddings):
         return self.embed_documents([text])[0]
 
 
-# 1. Create your embedding object
+# Initialize and wrap for RAGAS
 embedding_object = RagasEmbeddings()
-
-# 2. Wrap it for RAGAS
+# Wrapping it with with ragas wrapper so that it can be used with ragas
 embeddings = LangchainEmbeddingsWrapper(embedding_object)
 
 
-
-
-# ==========================================
 # ==========================================
 # 3. LOAD TEST CASES
 # ==========================================
 
 with open(TEST_FILE, "r", encoding="utf-8") as file:
     test_cases = json.load(file)
+
+
 # ==========================================
 # 4. API HELPER FUNCTIONS
 # ==========================================
-
-
-
 
 def ask_question(url, question):
     response = requests.post(
@@ -91,18 +86,16 @@ def ask_question(url, question):
         json={
             "url": url,
             "question": question,
-            'session_id':'1234'
+            'session_id': '1234'
         },
         timeout=60
     )
     response.raise_for_status()
 
     data = response.json()
-
     answer = data["answer"]
     contexts = data.get("context", [])
 
-    # RAGAS expects a list of context strings.
     if isinstance(contexts, str):
         contexts = [contexts]
     elif contexts is None:
@@ -117,7 +110,6 @@ def ask_question(url, question):
 
 rows = []
 
-
 for number, case in enumerate(test_cases, start=1):
     url = case["url"]
     question = case["question"]
@@ -126,28 +118,24 @@ for number, case in enumerate(test_cases, start=1):
     print(f"\nTest {number}/{len(test_cases)}: {question}")
 
     try:
-
-        # Get the answer and retrieved context.
         answer, contexts = ask_question(url, question)
        
         rows.append({
-            "question": question,
-            "answer": answer,
-            "contexts": contexts,
-            "ground_truth": ground_truth
+            "user_input": question,       # Ragas v0.2+ uses user_input instead of question
+            "response": answer,           # Ragas v0.2+ uses response instead of answer
+            "retrieved_contexts": contexts,# Ragas v0.2+ uses retrieved_contexts instead of contexts
+            "reference": ground_truth     # Ragas v0.2+ uses reference instead of ground_truth
         })
 
         print("Answer received successfully")
 
     except Exception as error:
         print(f"Test failed: {error}")
-
-        # Keep the failure visible instead of scoring it as a valid answer.
         rows.append({
-            "question": question,
-            "answer": "",
-            "contexts": [],
-            "ground_truth": ground_truth
+            "user_input": question,
+            "response": "",
+            "retrieved_contexts": [],
+            "reference": ground_truth
         })
 
 # ==========================================
@@ -160,7 +148,7 @@ if not rows:
 # Exclude failed API calls from metric calculations.
 valid_rows = [
     row for row in rows
-    if row["answer"] and row["contexts"]
+    if row["response"] and row["retrieved_contexts"]
 ]
 
 if not valid_rows:
@@ -168,32 +156,33 @@ if not valid_rows:
         "No successful test cases with answers and contexts"
     )
 
-
 dataset = Dataset.from_list(valid_rows)
 
+# Define metrics array
+metrics = [
+    faithfulness,
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    answer_correctness,
+]
 
+# Correct Ragas 0.2+ syntax: Init metrics with LLM and Embeddings first
+for metric in metrics:
+    metric.llm = llm
+    metric.embeddings = embeddings
 
 results = evaluate(
     dataset=dataset,
-    metrics=[
-        faithfulness,
-        answer_relevancy,
-        context_precision,
-        context_recall,
-        answer_correctness,
-    ],
-    llm=llm,
-    embeddings=embeddings,
-    raise_exceptions=True,
-    batch_size=10,
+    batch_size=1,
+    metrics=metrics,
+    # llm and embeddings are removed from top-level arguments here
 )
 
 # ==========================================
 # 7. SAVE RESULTS
 # ==========================================
-
-results_df = results.to_pandas()
-
+results_df = results.to_pandas().round(2)
 results_df.to_csv("ragas_results.csv", index=False)
 
 print("\n========== RAGAS RESULTS ==========")

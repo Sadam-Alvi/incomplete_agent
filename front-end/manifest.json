@@ -1,14 +1,27 @@
+
 {
   "manifest_version": 3,
   "name": "Webby Chat",
   "version": "1.0.0",
   "description": "Your webpage AI assistant",
+  
+  "browser_specific_settings": {
+    "gecko": {
+    "id": "webby-chat@example.com",
+    "strict_min_version": "140.0",
+    "data_collection_permissions": {
+      "required": [
+        "websiteContent",
+        "browsingActivity"
+      ]
+    }
+  }
+}
+,
   "permissions": [
     "activeTab",
+    "tabs",
     "storage"
-  ],
-  "host_permissions": [
-    "https://new-repo.fastapicloud.dev/*"
   ],
   "action": {
     "default_popup": "popup.html",
