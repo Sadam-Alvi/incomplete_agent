@@ -1,2 +1,22 @@
+
+[project]
+name = "incomplete-agent"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "langchain-community>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-groq>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "numpy>=2.5.4",
+    "pinecone>=10.2.0",
+    "pydantic>=2.8.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.31.0",
+    "streamlit>=1.66.1",
+    "uvicorn[standard]>=0.30.0",
+]
+
 [tool.fastapi]
 entrypoint = "backend.main:app"
