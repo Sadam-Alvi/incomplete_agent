@@ -1,6 +1,7 @@
 from backend.RewriteQuestion import rewrite_question
 from backend.llm import answer_the_given_question_stream
 from backend.vector_database import retrieve_chunks
+from langsmith import traceable
 @traceable(name="webby_rag_pipeline",run_type='chain')
 async def answer_the_query_stream(
     question: str,
