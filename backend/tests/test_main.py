@@ -1,11 +1,20 @@
-import pytest
-from fastapi.testclient import TestClient
-
+import os
 import sys
 from pathlib import Path
 
+import pytest
+from fastapi.testclient import TestClient
+
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
+
+# Dummy key: allows ChatGroq initialization without a real API key
+os.environ["GROQ_API_KEY"] = "test-groq-key"
+os.environ["PINECONE_API_KEY"] = "test-pinecone-key"
+os.environ["API_KEY"] = "test-transcript-key"
+os.environ["LANGSMITH_API_KEY"] = "test-langsmith-key"
+os.environ["GOOGLE_API_KEY"] = "test-google-key"
+os.environ["HF_TOKEN"] = "test-hf-token"
 
 import main
 
