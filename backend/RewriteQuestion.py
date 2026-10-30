@@ -7,10 +7,12 @@ load_dotenv()
 
 parser = StrOutputParser()
 
-llm = ChatGroq(
-    model="openai/gpt-oss-20b",
-    temperature=0.7,
-)
+def get_llm():
+    return ChatGroq(
+        model="openai/gpt-oss-120b",
+        temperature=0.7,
+        api_key=os.getenv("GROQ_API_KEY")
+    )
 
 prompt = ChatPromptTemplate.from_messages([
     (
@@ -43,9 +45,11 @@ Return EXACTLY this format:
     ("human", "{question}")
 ])
 
-chain = prompt | llm | parser
+def get_chain():
+    return prompt | get_llm() | parser
+
 
 @traceable(name="rewrite_question", run_type="chain")
 def rewrite_question(question:str)->str:
-    new_question = chain.invoke(question)
+    new_question = get_chain().invoke(question)
     return new_question

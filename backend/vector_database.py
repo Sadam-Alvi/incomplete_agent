@@ -3,9 +3,12 @@ from pinecone import Pinecone
 import os
 from langsmith import traceable
 from time import perf_counter
-pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
-index = pc.index("webby-chat")
+def get_pinecone_index():
+    pc = Pinecone(
+        api_key=os.environ["PINECONE_API_KEY"]
+    )
 
+    return pc.Index("webby-chat")
 
 
 
@@ -31,7 +34,7 @@ def store_chunks(url: str, chunks: list[str]):
     for start in range(0, len(records), batch_size):
         batch = records[start:start + batch_size]
 
-        index.documents.upsert(
+        get_pinecone_index().documents.upsert(
             namespace="webby-chat",
             documents=batch,
         )

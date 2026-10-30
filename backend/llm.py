@@ -12,9 +12,15 @@ from fastapi.responses import StreamingResponse
 
 # 1. Load environment variables (API keys)
 load_dotenv()
-
+# addding lazy loading for llm to avoid loading the llm when the module is imported because ci cd is perfoming mocking and it is failing because of the llm api key not being present in the environment variables. So we are loading the llm only when it is needed.
+def get_llm():
+    return ChatGroq(
+        model="openai/gpt-oss-120b",
+        temperature=0.7,
+        api_key=os.getenv("GROQ_API_KEY")
+    )
 # 2. Initialize the LLM
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7)
+
 
 # 3. Create a template for the prompt
 prompt = ChatPromptTemplate.from_messages([
@@ -42,12 +48,17 @@ trimmer = trim_messages(
 )
 
 # 5. Build the core processing chain
-chain = (
-    RunnablePassthrough.assign(history=lambda x: trimmer.invoke(x["history"]))
-    | prompt 
-    | llm 
-    | StrOutputParser()
-)
+# adding this lazy loading for llm to avoid loading the llm when the module is imported because ci cd is perfoming mocking and it is failing because of the llm api key not being present in the environment variables. So we are loading the llm only when it is needed.
+def get_chain():
+    return (
+        RunnablePassthrough.assign(
+            history=lambda x: trimmer.invoke(x["history"])
+        )
+        | prompt
+        | get_llm()
+        | StrOutputParser()
+    )
+
 
 # 6. Set up the session memory store
 store = {}
@@ -59,7 +70,7 @@ def get_session_history(session_id: str):
 
 # 7. Wrap the chain to manage session history automatically
 chain_with_history = RunnableWithMessageHistory(
-    chain,
+    get_chain(),
     get_session_history,
     input_messages_key="question",
     history_messages_key="history",
