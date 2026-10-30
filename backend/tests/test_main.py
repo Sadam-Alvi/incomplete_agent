@@ -14,7 +14,7 @@ os.environ["API_KEY"] = "test-transcript-key"
 os.environ["LANGSMITH_API_KEY"] = "test-langsmith-key"
 os.environ["HF_TOKEN"] = "test-hf-token"
 
-import main
+from backend import main
 import pytest
 from fastapi.testclient import TestClient
 client = TestClient(main.app)
