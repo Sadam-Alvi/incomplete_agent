@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 load_dotenv()
 
 # 2. Initialize the LLM
-llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.7)
+llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7)
 
 # 3. Create a template for the prompt
 prompt = ChatPromptTemplate.from_messages([

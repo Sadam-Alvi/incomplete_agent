@@ -25,8 +25,6 @@ from ragas.llms import LangchainLLMWrapper
 
 load_dotenv()
 
-# Ensure you use a valid Groq or custom endpoint configuration if needed
-# model = ChatGroq(model="openai/gpt-oss-120b", temperature=0.7,timeout=60.0, max_retries=3)
 model = ChatOpenRouter(
     model="nvidia/nemotron-3-ultra-550b-a55b:free",
     temperature=0.8,

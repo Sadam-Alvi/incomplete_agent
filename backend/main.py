@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uuid import uuid4
 from function import tasks, tasks_lock, process_page
 from fastapi.responses import StreamingResponse
-from answer_question import answer_the_query_stream,answer_my_question
+from answer_question import answer_the_query_stream
 app = FastAPI()
 
 app.add_middleware(
@@ -58,7 +58,9 @@ async def ask_question(request: AskRequest):
         media_type="text/plain"
     )
 
-
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 
 '''Added this endpoint js for eveluation coz streaming wasnt working with evaulation script'''
 # @app.post('/evaluate/answer')
