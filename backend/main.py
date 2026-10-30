@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from uuid import uuid4
-from function import tasks, tasks_lock, process_page
 from fastapi.responses import StreamingResponse
-from answer_question import answer_the_query_stream
+from uuid import uuid4
+
+from backend.function import tasks, tasks_lock, process_page
+from backend.answer_question import answer_the_query_stream
 app = FastAPI()
 
 app.add_middleware(
@@ -69,6 +70,4 @@ async def health():
 #     answer,context = answer_my_question(question,request.url)
 #     return {'answer':answer,'context':context}
 
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+

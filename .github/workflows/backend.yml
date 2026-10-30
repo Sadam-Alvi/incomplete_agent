@@ -36,13 +36,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      # NEW STEP: Install FastAPI CLI
-      - name: Install FastAPI CLI
-        run: uv tool install "fastapi[standard]"
-
       - name: Deploy to FastAPI Cloud
-        working-directory: backend
-        run: uv run --with "fastapi[standard]" fastapi deploy main.py
+        run: uv run --with "fastapi[standard]" fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}

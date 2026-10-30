@@ -1,14 +1,19 @@
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 # from langchain_experimental.text_splitter import SemanticChunker
+
 import uuid
 from threading import Lock
-from llm import *
-from youtube_transcript import *
 import os
 import asyncio
+
 import pandas as pds
 import numpy as np
-from vector_database import store_chunks,video_chunks_exist
+
+from backend.llm import *
+from backend.youtube_transcript import *
+from backend.vector_database import store_chunks, video_chunks_exist
+
 load_dotenv()
 
 

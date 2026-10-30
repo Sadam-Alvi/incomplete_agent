@@ -99,24 +99,24 @@ async def answer_the_given_question_stream(
 
 
 '''Added this function js for eveluation coz streaming wasnt working with evaulation script'''
-def answer_the_given_question(
-    question: str,
-    context: str,
-    session_id: str = "default"
-) -> str:
-    response = chain_with_history.invoke(
-        {
-            "question": question,
-            "context": context,
-        },
-        config={
-            "configurable": {
-                "session_id": session_id
-            }
-        }
-    )
+# def answer_the_given_question(
+#     question: str,
+#     context: str,
+#     session_id: str = "default"
+# ) -> str:
+#     response = chain_with_history.invoke(
+#         {
+#             "question": question,
+#             "context": context,
+#         },
+#         config={
+#             "configurable": {
+#                 "session_id": session_id
+#             }
+#         }
+#     )
 
-    return response
+#     return response
 
 
 
