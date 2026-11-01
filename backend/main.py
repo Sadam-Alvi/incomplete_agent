@@ -7,7 +7,7 @@ from uuid import uuid4
 from backend.function import tasks, tasks_lock, process_page
 from backend.answer_question import answer_the_query_stream
 app = FastAPI()
-
+''' It alows  extension to make request to the backend from any origin. By default browsers block cross-origin requests for security reasons. This middleware allows the backend to accept requests from any origin'''
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,7 +56,7 @@ async def ask_question(request: AskRequest):
             url=request.url,
             session_id=request.session_id
         ),
-        media_type="text/plain"
+        media_type="text/plain; charset=utf-8"
     )
 
 @app.get("/health")

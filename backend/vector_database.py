@@ -12,8 +12,6 @@ def get_pinecone_index():
 
 
 
-import hashlib
-
 def store_chunks(url: str, chunks: list[str]):
     records = []
 
@@ -54,7 +52,7 @@ def retrieve_chunks(question: str, top_k: int, url: str):
         raise ValueError("The search query cannot be empty.")
     question = str(question)
 
-    results = index.documents.search(
+    results = get_pinecone_index().documents.search(
         namespace="webby-chat",
         top_k=top_k,
         score_by=[
@@ -83,7 +81,7 @@ def retrieve_chunks(question: str, top_k: int, url: str):
 
 def video_chunks_exist(url: str) -> bool:
     try:
-        response = index.documents.fetch(
+        response = get_pinecone_index().documents.fetch(
             namespace="webby-chat",
             filter={"url": {"$eq": url}},
             include_fields=["url"],

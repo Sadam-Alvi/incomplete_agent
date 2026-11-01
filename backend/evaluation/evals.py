@@ -1,4 +1,4 @@
-import os
+
 import json
 import requests
 from ragas.embeddings import LangchainEmbeddingsWrapper

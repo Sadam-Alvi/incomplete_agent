@@ -1,6 +1,9 @@
 import os
 import sys
 from pathlib import Path
+''' Using the mocking technique in these tests to test api calls without actually making real API calls. This is done to ensure that the tests are fast, reliable, and do not depend on external services. The tests use the `monkeypatch` fixture from pytest to replace the actual API call functions with fake implementations that simulate the expected behavior. This allows us to test the logic of our application without relying on the availability or behavior of external APIs.
+Mocking is a common practice in unit testing to isolate the code being tested and to control the environment in which the tests run.'''
+
 
 # Add repository root to Python path
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -19,7 +22,7 @@ from backend import main
 
 client = TestClient(main.app)
 
-
+# this decorator is used to define a fixture that will be automatically applied to all test functions in the module. The fixture is responsible for clearing the tasks dictionary before and after each test, ensuring that tests do not interfere with each other by sharing state.
 @pytest.fixture(autouse=True)
 def clear_tasks():
     # Keep tests independent of each other
@@ -35,7 +38,7 @@ def clear_tasks():
 # 1. Test health endpoint
 def test_health():
     response = client.get("/health")
-
+    # using assert insteasd of if statements to check the response status code and JSON content. If the assertions fail, pytest will report the failure and provide information about what went wrong.
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
 

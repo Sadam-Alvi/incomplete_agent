@@ -12,8 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # this action checks out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-
+      # this action sets up Python environment for the job
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -32,8 +33,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # this action checks out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-
+        #it installs uv, an ultra-fast Python package and project manager developed by Astral, making it available for subsequent steps.
       - uses: astral-sh/setup-uv@v7
 
       - name: Deploy to FastAPI Cloud

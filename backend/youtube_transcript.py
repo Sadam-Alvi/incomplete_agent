@@ -7,6 +7,10 @@ from urllib.parse import urlparse, parse_qs
 import pandas as pd
 from urllib.parse import urlparse
 from langsmith import traceable
+from pytube import extract
+
+
+
 load_dotenv()
 API_KEY = os.environ["API_KEY"]
 API_URL = "https://transcriptapi.com/api/v2/youtube/transcript"
@@ -14,28 +18,13 @@ API_URL = "https://transcriptapi.com/api/v2/youtube/transcript"
 
 
 
-def get_youtube_id(video_url: str) -> str | None:
-    parsed = urlparse(video_url)
-    host = (parsed.hostname or "").lower()
 
-    if host == "youtu.be":
-        return parsed.path.strip("/").split("/")[0] or None
-
-    if host in ("youtube.com", "www.youtube.com", "m.youtube.com"):
-        if parsed.path == "/watch":
-            return parse_qs(parsed.query).get("v", [None])[0]
-
-        if parsed.path.startswith(("/embed/", "/v/", "/shorts/")):
-            parts = parsed.path.strip("/").split("/")
-            return parts[1] if len(parts) > 1 else None
-
-    return None
 
 @traceable(name="getting_transcript", run_type="retriever")
 def get_youtube_transcript(video_url: str) -> str:
     
 
-    video_id = get_youtube_id(video_url)
+    video_id = extract.video_id(video_url)
     if not video_id:
         raise ValueError(f"Invalid YouTube URL: {video_url}")
 
@@ -45,7 +34,7 @@ def get_youtube_transcript(video_url: str) -> str:
     try:
         response = requests.get(
             API_URL,
-            params={"video_url": video_url, "format": "json"},
+            params={"video_url": video_id, "format": "json","language": "en,asr",},
             headers={"Authorization": f"Bearer {API_KEY}"},
             timeout=30,
         )
@@ -107,8 +96,4 @@ def get_content_from_url(url: str) -> str:
     else:   
         raise ValueError("Currently this extension is only for youtube video, please open  a youtube video, in future i'll add reading of other pages capability too")
     
-
-
-
-
 
