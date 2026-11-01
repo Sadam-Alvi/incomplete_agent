@@ -4,11 +4,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import uuid
 from threading import Lock
-import os
-import asyncio
 
-import pandas as pds
-import numpy as np
+
+
+
 
 from backend.llm import *
 from backend.youtube_transcript import *
